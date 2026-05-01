@@ -18,6 +18,10 @@
     environmentFiles = [ "/var/lib/hermes/env" ];
 
     settings = {
+      model = {
+        provider = "openrouter";
+        default = "nvidia/nemotron-3-super-120b-a12b:free";
+      };
       toolsets = [ "all" ];
       terminal = {
         backend = "local";
@@ -40,7 +44,11 @@
     ];
   };
 
-  # Hermes is installed and configured declaratively, but the gateway should not
-  # auto-start until the model provider and secret/auth strategy are chosen.
-  systemd.services.hermes-agent.wantedBy = lib.mkForce [ ];
+  system.activationScripts."hermes-cli-home-link" = lib.stringAfter [ "hermes-agent-setup" ] ''
+    if [ -d /home/hermes/.hermes ] && [ ! -L /home/hermes/.hermes ]; then
+      mv /home/hermes/.hermes "/home/hermes/.hermes.unmanaged-backup.$(date +%s)"
+    fi
+    ln -sfn /var/lib/hermes/.hermes /home/hermes/.hermes
+    chown -h hermes:hermes /home/hermes/.hermes
+  '';
 }
