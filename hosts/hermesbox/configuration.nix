@@ -58,6 +58,7 @@ in
     btop
     curl
     fd
+    fastfetch
     fish
     git
     htop
