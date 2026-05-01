@@ -9,6 +9,9 @@
   outputs = { nixpkgs, hermes-agent, ... }: {
     nixosConfigurations.hermesbox = nixpkgs.lib.nixosSystem {
       system = "aarch64-linux";
+      specialArgs = {
+        inherit hermes-agent;
+      };
       modules = [
         hermes-agent.nixosModules.default
         ./hosts/hermesbox/configuration.nix
