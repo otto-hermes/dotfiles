@@ -6,6 +6,7 @@ in
 {
   imports = [
     ./hardware-configuration.nix
+    ./hermes-agent.nix
   ];
 
   boot.tmp.cleanOnBoot = true;
