@@ -10,6 +10,8 @@ in
 
   boot.tmp.cleanOnBoot = true;
 
+  documentation.man.generateCaches = false;
+
   networking.hostName = "hermesbox";
   networking.useDHCP = lib.mkDefault true;
 
@@ -68,6 +70,7 @@ in
     ripgrep
     tmux
     tree
+    yazi
     wget
   ];
 
