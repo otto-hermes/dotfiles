@@ -14,8 +14,8 @@
     # Keep the CLI and gateway on the same managed state directory.
     addToSystemPackages = true;
 
-    # Provider secrets should live here temporarily, then move to sops-nix/agenix.
-    environmentFiles = [ "/var/lib/hermes/env" ];
+    # Operator-managed secrets live outside Git and the Nix store.
+    environmentFiles = [ "/home/hermes/.keys/hermes.env" ];
 
     settings = {
       model = {
@@ -44,19 +44,6 @@
       };
     };
 
-    environment = {
-      WHATSAPP_ENABLED = "true";
-      WHATSAPP_MODE = "self-chat";
-      WHATSAPP_ALLOWED_USERS = "905333526660";
-      WHATSAPP_HOME_CHANNEL = "905333526660";
-      WHATSAPP_HOME_CHANNEL_NAME = "Berker WhatsApp";
-      TELEGRAM_ENABLED = "true";
-      TELEGRAM_BOT_TOKEN = "8714198490:AAGEpAzwePrBxVONxKkbvAJu1d2Vf0wASww";
-      TELEGRAM_ALLOWED_USERS = "2052314937";
-      TELEGRAM_HOME_CHANNEL = "2052314937";
-      TELEGRAM_HOME_CHANNEL_NAME = "Berker Telegram";
-    };
-
     extraPackages = with pkgs; [
       curl
       fd
@@ -68,6 +55,18 @@
       wget
     ];
   };
+
+  systemd.services.hermes-agent.serviceConfig.ReadWritePaths = lib.mkAfter [ "/home/hermes/.keys" ];
+
+  system.activationScripts."hermes-keys" = lib.stringAfter [ "hermes-agent-setup" ] ''
+    install -d -m 0700 -o hermes -g hermes /home/hermes/.keys
+    if [ -e /home/hermes/.keys/hermes.env ]; then
+      chown hermes:hermes /home/hermes/.keys/hermes.env
+      chmod 0600 /home/hermes/.keys/hermes.env
+      ln -sfn /home/hermes/.keys/hermes.env /var/lib/hermes/.hermes/.env
+      chown -h hermes:hermes /var/lib/hermes/.hermes/.env
+    fi
+  '';
 
   system.activationScripts."hermes-cli-home-link" = lib.stringAfter [ "hermes-agent-setup" ] ''
     if [ -d /home/hermes/.hermes ] && [ ! -L /home/hermes/.hermes ]; then

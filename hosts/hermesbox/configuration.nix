@@ -16,6 +16,11 @@ in
   networking.hostName = "hermesbox";
   networking.useDHCP = lib.mkDefault true;
 
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 22 ];
+  };
+
   nix.settings.experimental-features = [
     "nix-command"
     "flakes"
