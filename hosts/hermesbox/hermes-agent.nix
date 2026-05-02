@@ -19,11 +19,15 @@
 
     settings = {
       model = {
-        provider = "openrouter";
-        default = "google/gemini-2.5-flash-lite";
-        # Keep in mind as a future free fallback candidate, but not as the default.
-        # nvidia/nemotron-3-super-120b-a12b:free has poor practical limits right now.
+        provider = "openai-codex";
+        default = "gpt-5.3-codex";
       };
+      fallback_providers = [
+        {
+          provider = "openrouter";
+          model = "google/gemini-2.5-flash-lite";
+        }
+      ];
       toolsets = [ "all" ];
       terminal = {
         backend = "local";
