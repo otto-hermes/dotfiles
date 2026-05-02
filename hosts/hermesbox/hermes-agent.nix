@@ -20,7 +20,9 @@
     settings = {
       model = {
         provider = "openrouter";
-        default = "nvidia/nemotron-3-super-120b-a12b:free";
+        default = "google/gemini-2.5-flash-lite";
+        # Keep in mind as a future free fallback candidate, but not as the default.
+        # nvidia/nemotron-3-super-120b-a12b:free has poor practical limits right now.
       };
       toolsets = [ "all" ];
       terminal = {
@@ -39,8 +41,6 @@
       };
       platforms.whatsapp.extra.bridge_script = "/var/lib/hermes/.hermes/platforms/whatsapp/bridge/bridge.js";
       telegram = {
-        # Telegram requires a TELEGRAM_BOT_TOKEN from @BotFather in /var/lib/hermes/env.
-        # Usernames like @berkerz are not accepted for allowlists; use pairing or a numeric ID.
       };
     };
 
@@ -50,6 +50,11 @@
       WHATSAPP_ALLOWED_USERS = "905333526660";
       WHATSAPP_HOME_CHANNEL = "905333526660";
       WHATSAPP_HOME_CHANNEL_NAME = "Berker WhatsApp";
+      TELEGRAM_ENABLED = "true";
+      TELEGRAM_BOT_TOKEN = "8714198490:AAGEpAzwePrBxVONxKkbvAJu1d2Vf0wASww";
+      TELEGRAM_ALLOWED_USERS = "2052314937";
+      TELEGRAM_HOME_CHANNEL = "2052314937";
+      TELEGRAM_HOME_CHANNEL_NAME = "Berker Telegram";
     };
 
     extraPackages = with pkgs; [
