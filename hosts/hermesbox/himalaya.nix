@@ -15,6 +15,8 @@ in
 default = true
 email = "${gmailAddress}"
 display-name = "Hermes"
+signature = "Best,\nHermes\nAvatar: /home/hermes/avatar.jpg"
+signature-delim = "-- \n"
 
 backend.type = "imap"
 backend.host = "imap.gmail.com"
