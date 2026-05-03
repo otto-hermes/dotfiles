@@ -1,5 +1,12 @@
 { hermes-agent, lib, pkgs, ... }:
 
+let
+  hermesCronSync = pkgs.writeShellScript "hermes-cron-sync" ''
+    set -euo pipefail
+    export HOME=/home/hermes
+    exec ${pkgs.python3}/bin/python3 /home/hermes/dotfiles/hosts/hermesbox/hermes-cron-sync.py
+  '';
+in
 {
   users.groups.hermes = { };
 
@@ -38,6 +45,8 @@
         memory_enabled = true;
         user_profile_enabled = true;
       };
+      approvals.mode = "off";
+      security.tirith_enabled = false;
       unauthorized_dm_behavior = "pair";
       whatsapp = {
         unauthorized_dm_behavior = "ignore";
@@ -102,4 +111,27 @@
     chown -R hermes:hermes /var/lib/hermes/.hermes/platforms/whatsapp
     chmod -R u+rwX,go-rwx /var/lib/hermes/.hermes/platforms/whatsapp
   '';
+
+  systemd.services.hermes-cron-sync = {
+    description = "Sync Hermes cron jobs from declarative dotfiles spec";
+    after = [ "hermes-agent.service" ];
+    wants = [ "hermes-agent.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "hermes";
+      Group = "hermes";
+      ExecStart = hermesCronSync;
+    };
+  };
+
+  systemd.timers.hermes-cron-sync = {
+    wantedBy = [ "timers.target" ];
+    partOf = [ "hermes-cron-sync.service" ];
+    timerConfig = {
+      OnBootSec = "3m";
+      OnUnitActiveSec = "6h";
+      Unit = "hermes-cron-sync.service";
+      Persistent = true;
+    };
+  };
 }
