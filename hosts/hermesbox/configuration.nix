@@ -7,6 +7,7 @@ in
   imports = [
     ./hardware-configuration.nix
     ./hermes-agent.nix
+    ./himalaya.nix
   ];
 
   boot.tmp.cleanOnBoot = true;
@@ -15,6 +16,8 @@ in
 
   networking.hostName = "hermesbox";
   networking.useDHCP = lib.mkDefault true;
+
+  time.timeZone = "Europe/Istanbul";
 
   networking.firewall = {
     enable = true;

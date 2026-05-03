@@ -14,24 +14,17 @@
     # Keep the CLI and gateway on the same managed state directory.
     addToSystemPackages = true;
 
-    # Operator-managed secrets live outside Git and the Nix store.
-    environmentFiles = [ "/home/hermes/.keys/hermes.env" ];
+    # Provider secrets should live here temporarily, then move to sops-nix/agenix.
+    environmentFiles = [ "/var/lib/hermes/env" ];
 
     settings = {
       model = {
-        provider = "openai-codex";
-        default = "gpt-5.3-codex";
+        provider = "openrouter";
+        default = "nvidia/nemotron-3-super-120b-a12b:free";
       };
-      fallback_providers = [
-        {
-          provider = "openrouter";
-          model = "google/gemini-2.5-flash-lite";
-        }
-      ];
       toolsets = [ "all" ];
       terminal = {
         backend = "local";
-        cwd = "/home/hermes";
         timeout = 180;
       };
       memory = {
@@ -46,14 +39,23 @@
       };
       platforms.whatsapp.extra.bridge_script = "/var/lib/hermes/.hermes/platforms/whatsapp/bridge/bridge.js";
       telegram = {
+        # Telegram requires a TELEGRAM_BOT_TOKEN from @BotFather in /var/lib/hermes/env.
+        # Usernames like @berkerz are not accepted for allowlists; use pairing or a numeric ID.
       };
+    };
+
+    environment = {
+      WHATSAPP_ENABLED = "true";
+      WHATSAPP_MODE = "self-chat";
+      WHATSAPP_ALLOWED_USERS = "905333526660";
+      WHATSAPP_HOME_CHANNEL = "905333526660";
+      WHATSAPP_HOME_CHANNEL_NAME = "Berker WhatsApp";
     };
 
     extraPackages = with pkgs; [
       curl
       fd
       git
-      himalaya
       jq
       nodejs_22
       ripgrep
@@ -61,31 +63,6 @@
       wget
     ];
   };
-
-  systemd.services.hermes-agent = {
-    serviceConfig = {
-      # Allow controlled privilege escalation from agent sessions (optional/risky).
-      NoNewPrivileges = lib.mkForce false;
-      WorkingDirectory = lib.mkForce "/home/hermes";
-      ReadWritePaths = lib.mkAfter [
-        "/home/hermes"
-        "/home/hermes/.keys"
-      ];
-    };
-
-    # Keep WhatsApp disabled for now (override env file).
-    environment.WHATSAPP_ENABLED = lib.mkForce "false";
-  };
-
-  system.activationScripts."hermes-keys" = lib.stringAfter [ "hermes-agent-setup" ] ''
-    install -d -m 0700 -o hermes -g hermes /home/hermes/.keys
-    if [ -e /home/hermes/.keys/hermes.env ]; then
-      chown hermes:hermes /home/hermes/.keys/hermes.env
-      chmod 0600 /home/hermes/.keys/hermes.env
-      ln -sfn /home/hermes/.keys/hermes.env /var/lib/hermes/.hermes/.env
-      chown -h hermes:hermes /var/lib/hermes/.hermes/.env
-    fi
-  '';
 
   system.activationScripts."hermes-cli-home-link" = lib.stringAfter [ "hermes-agent-setup" ] ''
     if [ -d /home/hermes/.hermes ] && [ ! -L /home/hermes/.hermes ]; then
