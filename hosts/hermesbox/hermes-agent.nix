@@ -6,6 +6,29 @@ let
     export HOME=/home/hermes
     exec ${pkgs.python3}/bin/python3 /home/hermes/dotfiles/hosts/hermesbox/hermes-cron-sync.py
   '';
+
+  hermesDailyNixosRebuild = pkgs.writeShellScript "hermes-daily-nixos-rebuild" ''
+    set -euo pipefail
+
+    flake_dir=/home/hermes/dotfiles
+    hostname="$(${pkgs.coreutils}/bin/cat /proc/sys/kernel/hostname)"
+    target="$flake_dir#$hostname"
+
+    export NIX_CONFIG="experimental-features = nix-command flakes"
+
+    echo "==> Updating flake inputs in $flake_dir"
+    ${pkgs.sudo}/bin/sudo -u hermes HOME=/home/hermes ${pkgs.nix}/bin/nix flake update "$flake_dir"
+
+    echo "==> Building NixOS configuration $target"
+    if ! ${pkgs.nixos-rebuild}/bin/nixos-rebuild build --flake "$target"; then
+      echo "==> Host-specific target failed; retrying build with $flake_dir"
+      ${pkgs.nixos-rebuild}/bin/nixos-rebuild build --flake "$flake_dir"
+      target="$flake_dir"
+    fi
+
+    echo "==> Switching NixOS configuration $target"
+    ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch --flake "$target"
+  '';
 in
 {
   users.groups.hermes = { };
@@ -27,7 +50,7 @@ in
     settings = {
       model = {
         provider = "openai-codex";
-        default = "gpt-5.3-codex";
+        default = "gpt-5.5";
       };
       fallback_providers = [
         {
@@ -111,6 +134,20 @@ in
     chown -R hermes:hermes /var/lib/hermes/.hermes/platforms/whatsapp
     chmod -R u+rwX,go-rwx /var/lib/hermes/.hermes/platforms/whatsapp
   '';
+
+  systemd.services.hermes-daily-nixos-rebuild = {
+    description = "Daily NixOS flake update, build, and switch triggered by Hermes cron";
+    after = [ "network-online.target" "nix-daemon.service" ];
+    wants = [ "network-online.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+      Group = "root";
+      WorkingDirectory = "/home/hermes/dotfiles";
+      ExecStart = hermesDailyNixosRebuild;
+      TimeoutStartSec = "2h";
+    };
+  };
 
   systemd.services.hermes-cron-sync = {
     description = "Sync Hermes cron jobs from declarative dotfiles spec";

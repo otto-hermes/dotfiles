@@ -4,15 +4,19 @@
       "id": "cbe89b5d00b5",
       "name": "daily-dotfiles-nixos-rebuild",
       "schedule": "0 5 * * *",
-      "enabled_toolsets": ["terminal"],
+      "enabled_toolsets": [
+        "terminal"
+      ],
       "deliver": "local",
-      "prompt": "Run a daily NixOS maintenance routine on this VM.\n\nRequirements:\n- Use terminal commands only.\n- Use HOME=/home/hermes for commands that need user config.\n- Operate on flake at /home/hermes/dotfiles.\n- Attempt steps in order:\n  1) nix flake update\n  2) sudo nixos-rebuild build with the dotfiles flake (validation)\n  3) sudo nixos-rebuild switch with the dotfiles flake\n- If either build/switch target with hostname is missing, retry once with flake path only.\n- If any step fails, send an email to berker.zor@gmail.com with:\n  - subject: \"[Hermes Daily Routine] Nix rebuild failed on $(hostname)\"\n  - short summary of failed step\n  - relevant command output/error text\n- If all steps succeed, do not send email.\n\nImplementation details:\n- Determine hostname dynamically and use target /home/hermes/dotfiles#<hostname> first.\n- If hostname target fails due missing flake output, retry with /home/hermes/dotfiles.\n- Capture command output for diagnostics.\n- Use Himalaya CLI for email sending via piped template input.\n- Exit with non-zero status when the routine fails.\n\nExecute now."
+      "prompt": "Run the daily NixOS maintenance routine on this VM by triggering the dedicated systemd oneshot, not by running nixos-rebuild directly inside the Hermes service sandbox.\n\nRequirements:\n- Use terminal commands only.\n- Start and wait for: sudo systemctl start hermes-daily-nixos-rebuild.service\n- Do not run nix flake update or nixos-rebuild directly from the cron session; those happen inside the root-owned systemd service.\n- If the service fails, collect diagnostics with:\n  - sudo systemctl status --no-pager hermes-daily-nixos-rebuild.service\n  - sudo journalctl -u hermes-daily-nixos-rebuild.service -n 200 --no-pager\n- If the service fails, send an email to berker.zor@gmail.com with:\n  - subject: \"[Hermes Daily Routine] Nix rebuild failed on $(hostname)\"\n  - short summary of failed step\n  - relevant status/journal output\n- If the service succeeds, do not send email.\n- Exit with non-zero status when the routine fails.\n\nRationale:\nHermes cron runs inside hermes-agent.service, which uses ProtectSystem=strict. Even sudo inherits that service mount namespace, so direct nixos-rebuild switch can fail writing /nix/var/nix/profiles with \"Read-only file system\". Starting the dedicated systemd unit asks PID 1 to run the rebuild outside the Hermes sandbox.\n\nExecute now."
     },
     {
       "id": "d24f6e4e7a35",
       "name": "sync-hermes-brain-to-github",
       "schedule": "every 6h",
-      "enabled_toolsets": ["terminal"],
+      "enabled_toolsets": [
+        "terminal"
+      ],
       "deliver": "local",
       "prompt": "Sync Hermes persistent brain files to GitHub.\n\nUse terminal commands only.\nSource state: /var/lib/hermes/.hermes\nMirror repo working copy: /home/hermes/hermes-brain-sync\nRemote: https://github.com/otto-hermes/hermes-brain.git\n\nDo:\n1) Ensure /home/hermes/hermes-brain-sync exists and is a git repo cloned from the remote.\n2) Copy/update these files from source into mirror:\n   - SOUL.md\n   - BERKER.md\n   - HERMES_TASKS.md\n   - memories/MEMORY.md\n   - memories/USER.md\n   - full skills/ tree\n3) Use rsync in a way that avoids ownership/permission issues (do not preserve owner/group/perms).\n4) Keep .gitignore present to avoid accidental secret/runtime uploads. Exclude runtime data like .env, config.yaml, auth.json, sessions/, logs/, cron/, platforms/.\n5) Commit only when there are changes (message: \"chore: sync brain snapshot\").\n6) Push to origin main.\n\nIf push fails, print concise diagnostics and exit non-zero.\nIf nothing changed, print \"no changes\"."
     },
@@ -20,7 +24,9 @@
       "id": "b2de94b7917d",
       "name": "sync-dotfiles-to-github",
       "schedule": "30 5 * * *",
-      "enabled_toolsets": ["terminal"],
+      "enabled_toolsets": [
+        "terminal"
+      ],
       "deliver": "local",
       "prompt": "Sync /home/hermes/dotfiles to GitHub repo otto-hermes/dotfiles.\n\nUse terminal only.\nSteps:\n1) cd /home/hermes/dotfiles\n2) Ensure origin is https://github.com/otto-hermes/dotfiles.git\n3) git add -A\n4) If there are staged changes, commit with message: \"chore: automated dotfiles sync\"\n5) Push branch main to origin\n6) If no changes, print \"no changes\"\n\nOn push failure, print concise diagnostics and exit non-zero."
     }
