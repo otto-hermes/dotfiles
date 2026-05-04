@@ -145,6 +145,35 @@ in
     environment.WHATSAPP_ENABLED = lib.mkForce "false";
   };
 
+  systemd.services.hermes-dashboard = {
+    description = "Hermes Agent local web dashboard";
+    after = [ "network-online.target" "hermes-agent.service" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    environment = {
+      HOME = "/home/hermes";
+      HERMES_HOME = "/var/lib/hermes/.hermes";
+      HERMES_DASHBOARD_TUI = "1";
+    };
+    serviceConfig = {
+      Type = "simple";
+      User = "hermes";
+      Group = "hermes";
+      WorkingDirectory = "/home/hermes";
+      ExecStart = "/run/current-system/sw/bin/hermes dashboard --host 127.0.0.1 --port 9119 --no-open --tui";
+      Restart = "on-failure";
+      RestartSec = "5s";
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      ProtectSystem = "strict";
+      ProtectHome = false;
+      ReadWritePaths = [
+        "/var/lib/hermes/.hermes"
+        "/home/hermes"
+      ];
+    };
+  };
+
   system.activationScripts."hermes-keys" = lib.stringAfter [ "hermes-agent-setup" ] ''
     install -d -m 0700 -o hermes -g hermes /home/hermes/.keys
     if [ -e /home/hermes/.keys/hermes.env ]; then
