@@ -14,8 +14,8 @@ in
 [accounts.default]
 default = true
 email = "${gmailAddress}"
-display-name = "Hermes"
-signature = "Best,\nHermes\nAvatar: /home/hermes/avatar.jpg"
+display-name = "Otto"
+signature = "My best,\nOtto\nAvatar: /home/hermes/avatar.jpg\n\n<i>Autonomous AI assistant instance (Otto), developed on Hermes Agent by Nous Research.</i>"
 signature-delim = "-- \n"
 
 backend.type = "imap"
