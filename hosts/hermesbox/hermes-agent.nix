@@ -29,6 +29,42 @@ let
     echo "==> Switching NixOS configuration $target"
     ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch --flake "$target"
   '';
+
+  hermesAuthReset = pkgs.writeShellScript "hermes-auth-reset" ''
+    set -euo pipefail
+    export HOME=/home/hermes
+
+    auth_file=/var/lib/hermes/.hermes/auth.json
+    if [ ! -r "$auth_file" ]; then
+      exit 0
+    fi
+
+    now="$(${pkgs.coreutils}/bin/date +%s)"
+    providers="$(${pkgs.jq}/bin/jq -r --argjson now "$now" '
+      (.credential_pool // {})
+      | to_entries[]
+      | select(any(.value[]?;
+          .last_status == "exhausted"
+          and (
+            (((.last_error_reset_at // 0) | tonumber? // 0) > 0
+              and ((.last_error_reset_at | tonumber) <= $now))
+            or (((.last_error_reset_at // null) == null)
+              and (((.last_status_at // 0) | tonumber? // 0) > 0)
+              and ((((.last_status_at // 0) | tonumber) + 3600) <= $now))
+          )
+        ))
+      | .key
+    ' "$auth_file")"
+
+    if [ -z "$providers" ]; then
+      exit 0
+    fi
+
+    for provider in $providers; do
+      ${pkgs.sudo}/bin/sudo -u hermes HOME=/home/hermes /run/current-system/sw/bin/hermes auth reset "$provider"
+    done
+    ${pkgs.systemd}/bin/systemctl try-restart hermes-agent.service
+  '';
 in
 {
   users.groups.hermes = { };
@@ -168,6 +204,27 @@ in
       OnBootSec = "3m";
       OnUnitActiveSec = "6h";
       Unit = "hermes-cron-sync.service";
+      Persistent = true;
+    };
+  };
+
+  systemd.services.hermes-auth-reset = {
+    description = "Clear stale Hermes provider exhaustion state";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+      Group = "root";
+      ExecStart = hermesAuthReset;
+    };
+  };
+
+  systemd.timers.hermes-auth-reset = {
+    wantedBy = [ "timers.target" ];
+    partOf = [ "hermes-auth-reset.service" ];
+    timerConfig = {
+      OnBootSec = "5m";
+      OnUnitActiveSec = "5m";
+      Unit = "hermes-auth-reset.service";
       Persistent = true;
     };
   };
