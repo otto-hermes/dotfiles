@@ -30,6 +30,21 @@ let
     ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch --flake "$target"
   '';
 
+  hermesDashboardTailscale = pkgs.writeShellScript "hermes-dashboard-tailscale" ''
+    set -euo pipefail
+
+    for _ in $(${pkgs.coreutils}/bin/seq 1 60); do
+      tail_ip="$(${pkgs.tailscale}/bin/tailscale ip -4 2>/dev/null | ${pkgs.coreutils}/bin/head -n1 || true)"
+      if [ -n "$tail_ip" ]; then
+        exec /run/current-system/sw/bin/hermes dashboard --host "$tail_ip" --port 9119 --no-open --tui --insecure
+      fi
+      ${pkgs.coreutils}/bin/sleep 2
+    done
+
+    echo "tailscale IPv4 address was not available for Hermes dashboard binding" >&2
+    exit 1
+  '';
+
   hermesAuthReset = pkgs.writeShellScript "hermes-auth-reset" ''
     set -euo pipefail
     export HOME=/home/hermes
@@ -147,8 +162,8 @@ in
 
   systemd.services.hermes-dashboard = {
     description = "Hermes Agent local web dashboard";
-    after = [ "network-online.target" "hermes-agent.service" ];
-    wants = [ "network-online.target" ];
+    after = [ "network-online.target" "hermes-agent.service" "tailscaled-autoconnect.service" ];
+    wants = [ "network-online.target" "tailscaled-autoconnect.service" ];
     wantedBy = [ "multi-user.target" ];
     environment = {
       HOME = "/home/hermes";
@@ -160,7 +175,7 @@ in
       User = "hermes";
       Group = "hermes";
       WorkingDirectory = "/home/hermes";
-      ExecStart = "/run/current-system/sw/bin/hermes dashboard --host 127.0.0.1 --port 9119 --no-open --tui";
+      ExecStart = hermesDashboardTailscale;
       Restart = "on-failure";
       RestartSec = "5s";
       NoNewPrivileges = true;

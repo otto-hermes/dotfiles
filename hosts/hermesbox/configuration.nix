@@ -8,6 +8,7 @@ in
     ./hardware-configuration.nix
     ./hermes-agent.nix
     ./himalaya.nix
+    ./tailscale.nix
   ];
 
   boot.tmp.cleanOnBoot = true;
