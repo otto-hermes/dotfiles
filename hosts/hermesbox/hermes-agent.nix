@@ -156,8 +156,18 @@ in
       ];
     };
 
-    # Keep WhatsApp disabled for now (override env file).
-    environment.WHATSAPP_ENABLED = lib.mkForce "false";
+    environment = {
+      # Force non-interactive agent tool execution through a POSIX-compatible
+      # shell. The hermes user's login shell is fish, and some Hermes/tool
+      # wrappers emit POSIX snippets such as `__hermes_ec=$?`; exposing fish as
+      # $SHELL causes those wrappers to fail before commands run. Keep fish as
+      # the account login shell, but make service-launched agent sessions use
+      # bash for programmatic terminal execution.
+      SHELL = lib.mkForce "${pkgs.bashInteractive}/bin/bash";
+
+      # Keep WhatsApp disabled for now (override env file).
+      WHATSAPP_ENABLED = lib.mkForce "false";
+    };
   };
 
   systemd.services.hermes-dashboard = {
@@ -169,6 +179,9 @@ in
       HOME = "/home/hermes";
       HERMES_HOME = "/var/lib/hermes/.hermes";
       HERMES_DASHBOARD_TUI = "1";
+      # Match hermes-agent.service: dashboard-spawned TUI/chat sessions should
+      # not inherit fish as $SHELL for programmatic command execution.
+      SHELL = "${pkgs.bashInteractive}/bin/bash";
     };
     serviceConfig = {
       Type = "simple";
