@@ -1,0 +1,7 @@
+keys:
+  - &otto_shared age1e6vqu38fgp6hkmdj7fhugx2dsx54g2juszqvx7d7lv33q8x539yscah25l
+creation_rules:
+  - path_regex: hosts/hermesbox/secrets\.yaml$
+    key_groups:
+      - age:
+          - *otto_shared

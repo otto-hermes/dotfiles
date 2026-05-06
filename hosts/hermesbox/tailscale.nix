@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   networking.firewall.trustedInterfaces = [ "tailscale0" ];
@@ -7,9 +7,9 @@
     enable = true;
     package = pkgs.tailscale;
 
-    # Runtime secret managed outside Git/Nix store by the operator.
-    # This enrolls the VM non-interactively into Berker's tailnet.
-    authKeyFile = "/home/hermes/.keys/tailscale-authkey";
+    # Runtime secret decrypted by sops-nix. The file contains an auth key only,
+    # not Tailscale machine state; fresh hosts should enroll, not copy state DBs.
+    authKeyFile = config.sops.secrets."tailscale/authkey".path;
 
     # Allow Otto to be reached privately over Tailscale SSH and give it a stable tailnet name.
     extraUpFlags = [

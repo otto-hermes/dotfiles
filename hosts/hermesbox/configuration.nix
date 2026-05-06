@@ -6,6 +6,7 @@ in
 {
   imports = [
     ./hardware-configuration.nix
+    ./sops-secrets.nix
     ./hermes-agent.nix
     ./himalaya.nix
     ./tailscale.nix
@@ -68,9 +69,12 @@ in
 
   environment.systemPackages = with pkgs; [
     btop
+    chromium
     curl
-    fd
+    espeak-ng
     fastfetch
+    fd
+    ffmpeg
     fish
     git
     htop

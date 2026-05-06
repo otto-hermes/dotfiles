@@ -1,4 +1,4 @@
-{ hermes-agent, lib, pkgs, ... }:
+{ config, hermes-agent, lib, pkgs, ... }:
 
 let
   hermesCronSync = pkgs.writeShellScript "hermes-cron-sync" ''
@@ -80,6 +80,17 @@ let
     done
     ${pkgs.systemd}/bin/systemctl try-restart hermes-agent.service
   '';
+
+  hyperframes = pkgs.writeShellScriptBin "hyperframes" ''
+    set -euo pipefail
+    export HOME="''${HOME:-/home/hermes}"
+    export npm_config_cache="''${npm_config_cache:-/home/hermes/.npm}"
+    export PATH="${lib.makeBinPath [ pkgs.nodejs_22 pkgs.ffmpeg pkgs.chromium pkgs.espeak-ng pkgs.coreutils ]}:$PATH"
+    export HYPERFRAMES_BROWSER_PATH="${pkgs.chromium}/bin/chromium"
+    export PRODUCER_HEADLESS_SHELL_PATH="${pkgs.chromium}/bin/chromium"
+    export PRODUCER_FORCE_SCREENSHOT="''${PRODUCER_FORCE_SCREENSHOT:-true}"
+    exec ${pkgs.nodejs_22}/bin/npx -y hyperframes@0.4.45 "$@"
+  '';
 in
 {
   users.groups.hermes = { };
@@ -95,8 +106,14 @@ in
     # Keep the CLI and gateway on the same managed state directory.
     addToSystemPackages = true;
 
-    # Operator-managed secrets live outside Git and the Nix store.
-    environmentFiles = [ "/home/hermes/.keys/hermes.env" ];
+    # Transition-safe secret loading: keep the legacy operator-managed env file
+    # as fallback, then let sops-nix's generated runtime env override it when
+    # available. Note: this Hermes module concatenates these files during
+    # activation, so do not use systemd's optional '-' EnvironmentFile marker.
+    environmentFiles = [
+      "/home/hermes/.keys/hermes.env"
+      config.sops.secrets."hermes/env".path
+    ];
 
     settings = {
       model = {
@@ -134,11 +151,15 @@ in
 
     extraPackages = with pkgs; [
       curl
+      espeak-ng
       fd
+      ffmpeg
       git
       himalaya
+      hyperframes
       jq
       nodejs_22
+      chromium
       ripgrep
       tree
       wget
@@ -157,6 +178,10 @@ in
     };
 
     environment = {
+      HYPERFRAMES_BROWSER_PATH = "${pkgs.chromium}/bin/chromium";
+      PRODUCER_HEADLESS_SHELL_PATH = "${pkgs.chromium}/bin/chromium";
+      PRODUCER_FORCE_SCREENSHOT = "true";
+
       # Force non-interactive agent tool execution through a POSIX-compatible
       # shell. The hermes user's login shell is fish, and some Hermes/tool
       # wrappers emit POSIX snippets such as `__hermes_ec=$?`; exposing fish as
@@ -204,7 +229,10 @@ in
 
   system.activationScripts."hermes-keys" = lib.stringAfter [ "hermes-agent-setup" ] ''
     install -d -m 0700 -o hermes -g hermes /home/hermes/.keys
-    if [ -e /home/hermes/.keys/hermes.env ]; then
+    if [ -e ${config.sops.secrets."hermes/env".path} ]; then
+      ln -sfn ${config.sops.secrets."hermes/env".path} /var/lib/hermes/.hermes/.env
+      chown -h hermes:hermes /var/lib/hermes/.hermes/.env
+    elif [ -e /home/hermes/.keys/hermes.env ]; then
       chown hermes:hermes /home/hermes/.keys/hermes.env
       chmod 0600 /home/hermes/.keys/hermes.env
       ln -sfn /home/hermes/.keys/hermes.env /var/lib/hermes/.hermes/.env

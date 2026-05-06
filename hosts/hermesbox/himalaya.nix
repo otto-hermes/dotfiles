@@ -2,11 +2,14 @@
 
 let
   gmailAddress = "therearenothings@gmail.com";
-  gmailPasswordCmd = "/bin/sh -lc \"set -a; . /home/hermes/.keys/hermes.env >/dev/null 2>&1; printf %s \\\"$GMAIL_APP_PASSWORD\\\"\"";
+  hermesEnvFile = "/run/secrets/hermes.env";
+  legacyHermesEnvFile = "/home/hermes/.keys/hermes.env";
+  gmailPasswordCmd = "/bin/sh -lc \"env_file=${hermesEnvFile}; [ -r \\\"$env_file\\\" ] || env_file=${legacyHermesEnvFile}; set -a; . \\\"$env_file\\\" >/dev/null 2>&1; printf %s \\\"$GMAIL_APP_PASSWORD\\\"\"";
 in
 {
-  # Declaratively render Himalaya config outside the Nix store, with secrets pulled
-  # at runtime from /home/hermes/.keys/hermes.env.
+  # Declaratively render Himalaya config outside the Nix store, with secrets
+  # pulled at runtime from sops-nix's /run/secrets/hermes.env, falling back to
+  # the legacy operator-managed env file during migration.
   system.activationScripts."himalaya-config" = lib.stringAfter [ "users" ] ''
     install -d -m 0700 -o hermes -g hermes /home/hermes/.config/himalaya
 
