@@ -16,6 +16,8 @@ in
 
   documentation.man.generateCaches = false;
 
+  programs.mosh.enable = true;
+
   networking.hostName = "hermesbox";
   networking.useDHCP = lib.mkDefault true;
 
