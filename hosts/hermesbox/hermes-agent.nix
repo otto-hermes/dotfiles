@@ -220,6 +220,13 @@ in
     chown -h hermes:hermes /home/hermes/.hermes
   '';
 
+  system.activationScripts."hermes-scripts" = lib.stringAfter [ "hermes-cli-home-link" ] ''
+    install -d -m 0755 -o hermes -g hermes /var/lib/hermes/.hermes/scripts
+    cp --no-preserve=mode,ownership /home/hermes/dotfiles/hosts/hermesbox/scripts/no-agent-health-check.py /var/lib/hermes/.hermes/scripts/no-agent-health-check.py
+    chown hermes:hermes /var/lib/hermes/.hermes/scripts/no-agent-health-check.py
+    chmod 0755 /var/lib/hermes/.hermes/scripts/no-agent-health-check.py
+  '';
+
   system.activationScripts."hermes-whatsapp-bridge" = lib.stringAfter [ "hermes-agent-setup" ] ''
     bridge_dir=/var/lib/hermes/.hermes/platforms/whatsapp/bridge
     mkdir -p "$bridge_dir"

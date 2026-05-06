@@ -29,6 +29,16 @@
       ],
       "deliver": "local",
       "prompt": "Sync /home/hermes/dotfiles to GitHub repo otto-hermes/dotfiles.\n\nUse terminal only.\nSteps:\n1) cd /home/hermes/dotfiles\n2) Ensure origin is https://github.com/otto-hermes/dotfiles.git\n3) git add -A\n4) If there are staged changes, commit with message: \"chore: automated dotfiles sync\"\n5) Push branch main to origin\n6) If no changes, print \"no changes\"\n\nOn push failure, print concise diagnostics and exit non-zero."
+    },
+    {
+      "id": "3a4f9c0b8d2e",
+      "name": "no-agent-otto-health-watchdog",
+      "schedule": "every 2h",
+      "no_agent": true,
+      "script": "no-agent-health-check.py",
+      "deliver": "local",
+      "prompt": "No-agent watchdog: run deterministic Otto health checks and deliver stdout verbatim only when the script reports actionable alerts. The script is intentionally quiet when healthy. Do not attach skills or model reasoning.",
+      "enabled_toolsets": []
     }
   ]
 }
