@@ -1,4 +1,42 @@
+# Nix build artifacts
 result
 result-*
+
+# VM/disk images
 *.qcow2
 *.img
+
+# Local secrets and credentials, do not auto-add these from cron syncs
+.env
+.env.*
+*.key
+*.pem
+*.token
+*.p12
+*.pfx
+*.kdbx
+id_rsa
+id_ed25519
+id_ecdsa
+id_dsa
+
+# Runtime auth/cache/state that should never be committed accidentally
+auth.json
+sessions/
+logs/
+cron/
+platforms/
+pastes/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.lock
+*.pid
+.cache/
+cache/
+tmp/
+temp/
+
+# Keep sops-encrypted secrets.yaml tracked intentionally; plaintext secrets belong outside git.
