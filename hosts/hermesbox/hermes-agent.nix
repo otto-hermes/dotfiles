@@ -17,7 +17,7 @@ let
     export NIX_CONFIG="experimental-features = nix-command flakes"
 
     echo "==> Updating flake inputs in $flake_dir"
-    ${pkgs.sudo}/bin/sudo -u hermes HOME=/home/hermes ${pkgs.nix}/bin/nix flake update "$flake_dir"
+    ${pkgs.sudo}/bin/sudo -u hermes HOME=/home/hermes ${pkgs.nix}/bin/nix flake update --flake "$flake_dir"
 
     echo "==> Building NixOS configuration $target"
     if ! ${pkgs.nixos-rebuild}/bin/nixos-rebuild build --flake "$target"; then
