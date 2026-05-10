@@ -117,8 +117,8 @@ in
 
     settings = {
       model = {
-        provider = "openai-codex";
-        default = "gpt-5.5";
+        provider = "openrouter";
+        default = "deepseek/deepseek-v4-flash";
       };
       fallback_providers = [
         {
