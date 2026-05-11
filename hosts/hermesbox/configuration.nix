@@ -17,6 +17,7 @@ in
   documentation.man.generateCaches = false;
 
   programs.mosh.enable = true;
+  programs.nix-ld.enable = true;
 
   networking.hostName = "hermesbox";
   networking.useDHCP = lib.mkDefault true;
@@ -42,11 +43,33 @@ in
     };
   };
 
-  users.defaultUserShell = pkgs.fish;
+  programs.bash = {
+    completion.enable = true;
+    shellAliases = {
+      ll = "ls -lah";
+      rebuild = "sudo nixos-rebuild switch --flake /home/hermes/dotfiles#hermesbox";
+    };
+  };
+
+  programs.tmux = {
+    enable = true;
+    extraConfig = ''
+      # Hermes TUI runs in raw-mode alternate screen. Mouse mode lets wheel
+      # events reach Hermes instead of tmux/terminal translating them into
+      # plain Up/Down, which only recalls prompt history.
+      set -g mouse on
+      set -g extended-keys on
+      set -as terminal-features 'xterm*:extkeys,screen*:extkeys,tmux*:extkeys'
+    '';
+  };
+
+  # Keep fish installed for explicit interactive use (`fish`), but make bash
+  # the default/login shell for automation and service-account sessions.
+  users.defaultUserShell = pkgs.bashInteractive;
   users.mutableUsers = false;
 
   users.users.root = {
-    shell = pkgs.fish;
+    shell = pkgs.bashInteractive;
     openssh.authorizedKeys.keys = [ sshKey ];
   };
 
@@ -54,7 +77,7 @@ in
     isNormalUser = true;
     description = "Hermes agent operator";
     extraGroups = [ "wheel" ];
-    shell = pkgs.fish;
+    shell = pkgs.bashInteractive;
     openssh.authorizedKeys.keys = [ sshKey ];
   };
 
@@ -83,6 +106,7 @@ in
     jq
     neovim
     nix-output-monitor
+    python3
     ripgrep
     tmux
     tree

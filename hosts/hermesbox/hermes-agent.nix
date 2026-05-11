@@ -1,6 +1,17 @@
 { config, hermes-agent, lib, pkgs, ... }:
 
 let
+  dailyNixosRebuildPath = lib.makeBinPath [
+    pkgs.bash
+    pkgs.coreutils
+    pkgs.git
+    pkgs.nix
+    pkgs.nixos-rebuild
+    pkgs.openssh
+    pkgs.sudo
+    pkgs.systemd
+  ];
+
   hermesCronSync = pkgs.writeShellScript "hermes-cron-sync" ''
     set -euo pipefail
     export HOME=/home/hermes
@@ -15,9 +26,10 @@ let
     target="$flake_dir#$hostname"
 
     export NIX_CONFIG="experimental-features = nix-command flakes"
+    export PATH="${dailyNixosRebuildPath}:$PATH"
 
     echo "==> Updating flake inputs in $flake_dir"
-    ${pkgs.sudo}/bin/sudo -u hermes HOME=/home/hermes ${pkgs.nix}/bin/nix flake update --flake "$flake_dir"
+    ${pkgs.sudo}/bin/sudo -u hermes HOME=/home/hermes ${pkgs.bash}/bin/bash -c 'export PATH="${dailyNixosRebuildPath}:$PATH"; exec ${pkgs.nix}/bin/nix flake update --flake "$1"' -- "$flake_dir"
 
     echo "==> Building NixOS configuration $target"
     if ! ${pkgs.nixos-rebuild}/bin/nixos-rebuild build --flake "$target"; then
@@ -127,24 +139,75 @@ in
         }
       ];
       toolsets = [ "all" ];
+      agent = {
+        max_turns = 100;
+      };
+      skills = {
+        creation_nudge_interval = 50;
+        disabled = [
+          "audiocraft"
+          "axolotl"
+          "comfyui"
+          "dspy"
+          "godmode"
+          "huggingface-hub"
+          "jupyter-live-kernel"
+          "llama-cpp"
+          "lm-evaluation-harness"
+          "minecraft-modpack-server"
+          "obliteratus"
+          "openhue"
+          "outlines"
+          "pokemon-player"
+          "segment-anything"
+          "touchdesigner-mcp"
+          "trl-fine-tuning"
+          "unsloth"
+          "vllm"
+          "weights-and-biases"
+          "yuanbao"
+        ];
+      };
       terminal = {
         backend = "local";
         cwd = "/home/hermes";
         timeout = 180;
       };
       memory = {
+        nudge_interval = 50;
         memory_enabled = true;
         user_profile_enabled = true;
+        memory_char_limit = 6600;
+        user_char_limit = 4125;
+      };
+      compression = {
+        enabled = true;
+        threshold = 0.40;
+        target_ratio = 0.20;
+        protect_last_n = 8;
+      };
+      auxiliary = {
+        compression = {
+          provider = "openrouter";
+          model = "google/gemini-2.5-flash-lite";
+        };
+        vision = {
+          provider = "openrouter";
+          model = "google/gemini-2.5-flash-lite";
+        };
+        web_extract = {
+          provider = "openrouter";
+          model = "google/gemini-2.5-flash-lite";
+        };
+        title_generation = {
+          provider = "openrouter";
+          model = "google/gemini-2.5-flash-lite";
+        };
       };
       approvals.mode = "off";
       security.tirith_enabled = false;
       unauthorized_dm_behavior = "pair";
-      whatsapp = {
-        unauthorized_dm_behavior = "ignore";
-        dm_policy = "allowlist";
-        allow_from = "905333526660";
-      };
-      platforms.whatsapp.extra.bridge_script = "/var/lib/hermes/.hermes/platforms/whatsapp/bridge/bridge.js";
+
       telegram = {
       };
     };
@@ -183,11 +246,8 @@ in
       PRODUCER_FORCE_SCREENSHOT = "true";
 
       # Force non-interactive agent tool execution through a POSIX-compatible
-      # shell. The hermes user's login shell is fish, and some Hermes/tool
-      # wrappers emit POSIX snippets such as `__hermes_ec=$?`; exposing fish as
-      # $SHELL causes those wrappers to fail before commands run. Keep fish as
-      # the account login shell, but make service-launched agent sessions use
-      # bash for programmatic terminal execution.
+      # shell. Fish remains installed for explicit human use, but automation and
+      # service-launched agent sessions should not inherit fish semantics.
       SHELL = lib.mkForce "${pkgs.bashInteractive}/bin/bash";
 
       # Keep WhatsApp disabled for now (override env file).
@@ -205,7 +265,7 @@ in
       HERMES_HOME = "/var/lib/hermes/.hermes";
       HERMES_DASHBOARD_TUI = "1";
       # Match hermes-agent.service: dashboard-spawned TUI/chat sessions should
-      # not inherit fish as $SHELL for programmatic command execution.
+      # use bash/POSIX semantics for programmatic command execution.
       SHELL = "${pkgs.bashInteractive}/bin/bash";
     };
     serviceConfig = {
@@ -251,22 +311,29 @@ in
   system.activationScripts."hermes-scripts" = lib.stringAfter [ "hermes-cli-home-link" ] ''
     install -d -m 0755 -o hermes -g hermes /var/lib/hermes/.hermes/scripts
     cp --no-preserve=mode,ownership /home/hermes/dotfiles/hosts/hermesbox/scripts/no-agent-health-check.py /var/lib/hermes/.hermes/scripts/no-agent-health-check.py
+    cp --no-preserve=mode,ownership /home/hermes/dotfiles/hosts/hermesbox/scripts/daily-dotfiles-nixos-rebuild.py /var/lib/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
     chown hermes:hermes /var/lib/hermes/.hermes/scripts/no-agent-health-check.py
+    chown hermes:hermes /var/lib/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
     chmod 0755 /var/lib/hermes/.hermes/scripts/no-agent-health-check.py
+    chmod 0755 /var/lib/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
   '';
 
-  system.activationScripts."hermes-whatsapp-bridge" = lib.stringAfter [ "hermes-agent-setup" ] ''
-    bridge_dir=/var/lib/hermes/.hermes/platforms/whatsapp/bridge
-    mkdir -p "$bridge_dir"
-    cp -r --no-preserve=mode,ownership ${hermes-agent.outPath}/scripts/whatsapp-bridge/. "$bridge_dir/"
-    chown -R hermes:hermes /var/lib/hermes/.hermes/platforms/whatsapp
-    chmod -R u+rwX,go-rwx /var/lib/hermes/.hermes/platforms/whatsapp
-  '';
+
 
   systemd.services.hermes-daily-nixos-rebuild = {
     description = "Daily NixOS flake update, build, and switch triggered by Hermes cron";
     after = [ "network-online.target" "nix-daemon.service" ];
     wants = [ "network-online.target" ];
+    path = [
+      pkgs.bash
+      pkgs.coreutils
+      pkgs.git
+      pkgs.nix
+      pkgs.nixos-rebuild
+      pkgs.openssh
+      pkgs.sudo
+      pkgs.systemd
+    ];
     serviceConfig = {
       Type = "oneshot";
       User = "root";

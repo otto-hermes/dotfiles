@@ -40,3 +40,4 @@ tmp/
 temp/
 
 # Keep sops-encrypted secrets.yaml tracked intentionally; plaintext secrets belong outside git.
+__pycache__/

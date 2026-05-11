@@ -4,11 +4,11 @@
       "id": "cbe89b5d00b5",
       "name": "daily-dotfiles-nixos-rebuild",
       "schedule": "0 5 * * *",
-      "enabled_toolsets": [
-        "terminal"
-      ],
+      "enabled_toolsets": [],
       "deliver": "local",
-      "prompt": "Run the daily NixOS maintenance routine on this VM by triggering the dedicated systemd oneshot, not by running nixos-rebuild directly inside the Hermes service sandbox.\n\nRequirements:\n- Use terminal commands only.\n- Start and wait for: sudo systemctl start hermes-daily-nixos-rebuild.service\n- Do not run nix flake update or nixos-rebuild directly from the cron session; those happen inside the root-owned systemd service.\n- If the service fails, collect diagnostics with:\n  - sudo systemctl status --no-pager hermes-daily-nixos-rebuild.service\n  - sudo journalctl -u hermes-daily-nixos-rebuild.service -n 200 --no-pager\n- If the service fails, send an email to berker.zor@gmail.com with:\n  - subject: \"[Hermes Daily Routine] Nix rebuild failed on $(hostname)\"\n  - short summary of failed step\n  - relevant status/journal output\n- If the service succeeds, do not send email.\n- Exit with non-zero status when the routine fails.\n\nRationale:\nHermes cron runs inside hermes-agent.service, which uses ProtectSystem=strict. Even sudo inherits that service mount namespace, so direct nixos-rebuild switch can fail writing /nix/var/nix/profiles with \"Read-only file system\". Starting the dedicated systemd unit asks PID 1 to run the rebuild outside the Hermes sandbox.\n\nExecute now."
+      "prompt": "No-agent daily NixOS maintenance: trigger hermes-daily-nixos-rebuild.service and stay silent on success. The script exits non-zero and prints diagnostics on failure.",
+      "no_agent": true,
+      "script": "daily-dotfiles-nixos-rebuild.py"
     },
     {
       "id": "d24f6e4e7a35",
