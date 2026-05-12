@@ -61,7 +61,7 @@ let
     set -euo pipefail
     export HOME=/home/hermes
 
-    auth_file=/var/lib/hermes/.hermes/auth.json
+    auth_file=/home/hermes/.hermes/auth.json
     if [ ! -r "$auth_file" ]; then
       exit 0
     fi
@@ -245,6 +245,12 @@ in
       PRODUCER_HEADLESS_SHELL_PATH = "${pkgs.chromium}/bin/chromium";
       PRODUCER_FORCE_SCREENSHOT = "true";
 
+      # Complete the state dir migration: override the Hermes module's default
+      # HOME=/var/lib/hermes to point to the canonical user home instead.
+      HOME = "/home/hermes";
+      MESSAGING_CWD = "/home/hermes/workspace";
+      HERMES_HOME = "/home/hermes/.hermes";
+
       # Force non-interactive agent tool execution through a POSIX-compatible
       # shell. Fish remains installed for explicit human use, but automation and
       # service-launched agent sessions should not inherit fish semantics.
@@ -262,7 +268,7 @@ in
     wantedBy = [ "multi-user.target" ];
     environment = {
       HOME = "/home/hermes";
-      HERMES_HOME = "/var/lib/hermes/.hermes";
+      HERMES_HOME = "/home/hermes/.hermes";
       HERMES_DASHBOARD_TUI = "1";
       # Match hermes-agent.service: dashboard-spawned TUI/chat sessions should
       # use bash/POSIX semantics for programmatic command execution.
@@ -281,7 +287,6 @@ in
       ProtectSystem = "strict";
       ProtectHome = false;
       ReadWritePaths = [
-        "/var/lib/hermes/.hermes"
         "/home/hermes"
       ];
     };
@@ -290,32 +295,24 @@ in
   system.activationScripts."hermes-keys" = lib.stringAfter [ "hermes-agent-setup" ] ''
     install -d -m 0700 -o hermes -g hermes /home/hermes/.keys
     if [ -e ${config.sops.secrets."hermes/env".path} ]; then
-      ln -sfn ${config.sops.secrets."hermes/env".path} /var/lib/hermes/.hermes/.env
-      chown -h hermes:hermes /var/lib/hermes/.hermes/.env
+      ln -sfn ${config.sops.secrets."hermes/env".path} /home/hermes/.hermes/.env
+      chown -h hermes:hermes /home/hermes/.hermes/.env
     elif [ -e /home/hermes/.keys/hermes.env ]; then
       chown hermes:hermes /home/hermes/.keys/hermes.env
       chmod 0600 /home/hermes/.keys/hermes.env
-      ln -sfn /home/hermes/.keys/hermes.env /var/lib/hermes/.hermes/.env
-      chown -h hermes:hermes /var/lib/hermes/.hermes/.env
+      ln -sfn /home/hermes/.keys/hermes.env /home/hermes/.hermes/.env
+      chown -h hermes:hermes /home/hermes/.hermes/.env
     fi
   '';
 
-  system.activationScripts."hermes-cli-home-link" = lib.stringAfter [ "hermes-agent-setup" ] ''
-    if [ -d /home/hermes/.hermes ] && [ ! -L /home/hermes/.hermes ]; then
-      mv /home/hermes/.hermes "/home/hermes/.hermes.unmanaged-backup.$(date +%s)"
-    fi
-    ln -sfn /var/lib/hermes/.hermes /home/hermes/.hermes
-    chown -h hermes:hermes /home/hermes/.hermes
-  '';
-
-  system.activationScripts."hermes-scripts" = lib.stringAfter [ "hermes-cli-home-link" ] ''
-    install -d -m 0755 -o hermes -g hermes /var/lib/hermes/.hermes/scripts
-    cp --no-preserve=mode,ownership /home/hermes/dotfiles/hosts/hermesbox/scripts/no-agent-health-check.py /var/lib/hermes/.hermes/scripts/no-agent-health-check.py
-    cp --no-preserve=mode,ownership /home/hermes/dotfiles/hosts/hermesbox/scripts/daily-dotfiles-nixos-rebuild.py /var/lib/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
-    chown hermes:hermes /var/lib/hermes/.hermes/scripts/no-agent-health-check.py
-    chown hermes:hermes /var/lib/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
-    chmod 0755 /var/lib/hermes/.hermes/scripts/no-agent-health-check.py
-    chmod 0755 /var/lib/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
+  system.activationScripts."hermes-scripts" = lib.stringAfter [ "hermes-agent-setup" ] ''
+    install -d -m 0755 -o hermes -g hermes /home/hermes/.hermes/scripts
+    cp --no-preserve=mode,ownership /home/hermes/dotfiles/hosts/hermesbox/scripts/no-agent-health-check.py /home/hermes/.hermes/scripts/no-agent-health-check.py
+    cp --no-preserve=mode,ownership /home/hermes/dotfiles/hosts/hermesbox/scripts/daily-dotfiles-nixos-rebuild.py /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
+    chown hermes:hermes /home/hermes/.hermes/scripts/no-agent-health-check.py
+    chown hermes:hermes /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
+    chmod 0755 /home/hermes/.hermes/scripts/no-agent-health-check.py
+    chmod 0755 /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
   '';
 
 

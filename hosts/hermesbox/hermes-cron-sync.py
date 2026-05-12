@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 SPEC_PATH = Path('/home/hermes/dotfiles/hosts/hermesbox/hermes-cron-jobs.json')
-JOBS_PATH = Path('/var/lib/hermes/.hermes/cron/jobs.json')
+JOBS_PATH = Path('/home/hermes/.hermes/cron/jobs.json')
 
 
 def parse_schedule(s: str):
