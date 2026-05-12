@@ -247,9 +247,9 @@ in
 
       # Complete the state dir migration: override the Hermes module's default
       # HOME=/var/lib/hermes to point to the canonical user home instead.
-      HOME = "/home/hermes";
-      MESSAGING_CWD = "/home/hermes/workspace";
-      HERMES_HOME = "/home/hermes/.hermes";
+      HOME = lib.mkForce "/home/hermes";
+      MESSAGING_CWD = lib.mkForce "/home/hermes/workspace";
+      HERMES_HOME = lib.mkForce "/home/hermes/.hermes";
 
       # Force non-interactive agent tool execution through a POSIX-compatible
       # shell. Fish remains installed for explicit human use, but automation and
