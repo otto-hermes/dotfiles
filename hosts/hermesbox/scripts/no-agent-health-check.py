@@ -26,7 +26,7 @@ def run(cmd: list[str], timeout: int = 10) -> tuple[int, str, str]:
 
 
 # Disk/free-space summary.
-for path_s in ["/", "/home", "/var/lib/hermes"]:
+for path_s in ["/", "/home", "/home/hermes"]:
     path = Path(path_s)
     if not path.exists():
         alerts.append(f"missing path: {path_s}")
@@ -47,7 +47,7 @@ for svc in ["hermes-agent.service", "hermes-dashboard.service"]:
         alerts.append(f"systemd service not active: {svc} ({state})")
 
 # Safe cron inventory: metadata only, no prompts/secrets.
-jobs_path = Path("/var/lib/hermes/.hermes/cron/jobs.json")
+jobs_path = Path("/home/hermes/.hermes/cron/jobs.json")
 try:
     data = json.loads(jobs_path.read_text())
     jobs = [j for j in data.get("jobs", []) if isinstance(j, dict)]

@@ -117,6 +117,8 @@ in
 
     # Keep the CLI and gateway on the same managed state directory.
     addToSystemPackages = true;
+    stateDir = "/home/hermes";
+    workingDirectory = "/home/hermes/workspace";
     extraDependencyGroups = [ "messaging" ];
 
     # Transition-safe secret loading: keep the legacy operator-managed env file
@@ -214,6 +216,10 @@ in
 
       telegram = {
       };
+      whatsapp = {
+        bridge_script = "/home/hermes/.hermes/platforms/whatsapp/bridge/bridge.js";
+      };
+      platforms.whatsapp.extra.bridge_script = "/home/hermes/.hermes/platforms/whatsapp/bridge/bridge.js";
     };
 
     extraPackages = with pkgs; [
@@ -237,7 +243,6 @@ in
     serviceConfig = {
       # Allow controlled privilege escalation from agent sessions (optional/risky).
       NoNewPrivileges = lib.mkForce false;
-      WorkingDirectory = lib.mkForce "/home/hermes";
       ReadWritePaths = lib.mkAfter [
         "/home/hermes"
         "/home/hermes/.keys"
@@ -248,12 +253,6 @@ in
       HYPERFRAMES_BROWSER_PATH = "${pkgs.chromium}/bin/chromium";
       PRODUCER_HEADLESS_SHELL_PATH = "${pkgs.chromium}/bin/chromium";
       PRODUCER_FORCE_SCREENSHOT = "true";
-
-      # Complete the state dir migration: override the Hermes module's default
-      # HOME=/var/lib/hermes to point to the canonical user home instead.
-      HOME = lib.mkForce "/home/hermes";
-      MESSAGING_CWD = lib.mkForce "/home/hermes/workspace";
-      HERMES_HOME = lib.mkForce "/home/hermes/.hermes";
 
       # Force non-interactive agent tool execution through a POSIX-compatible
       # shell. Fish remains installed for explicit human use, but automation and
@@ -298,23 +297,16 @@ in
 
   system.activationScripts."hermes-keys" = lib.stringAfter [ "hermes-agent-setup" ] ''
     install -d -m 0700 -o hermes -g hermes /home/hermes/.keys
-    install -d -m 2770 -o hermes -g hermes /home/hermes/.hermes
-    if [ -e /var/lib/hermes/.hermes/.env ]; then
-      rm -f /home/hermes/.hermes/.env
-      install -m 0640 -o hermes -g hermes /var/lib/hermes/.hermes/.env /home/hermes/.hermes/.env
+    if [ -e /home/hermes/.keys/hermes.env ]; then
+      chown hermes:hermes /home/hermes/.keys/hermes.env
+      chmod 0600 /home/hermes/.keys/hermes.env
+    fi
+    if [ -e /home/hermes/.hermes/.env ]; then
       cat >> /home/hermes/.hermes/.env <<'EOF'
 WHATSAPP_ENABLED=false
 EOF
       chown hermes:hermes /home/hermes/.hermes/.env
       chmod 0640 /home/hermes/.hermes/.env
-    elif [ -e /home/hermes/.keys/hermes.env ]; then
-      chown hermes:hermes /home/hermes/.keys/hermes.env
-      chmod 0600 /home/hermes/.keys/hermes.env
-      rm -f /home/hermes/.hermes/.env
-      install -m 0640 -o hermes -g hermes /home/hermes/.keys/hermes.env /home/hermes/.hermes/.env
-      cat >> /home/hermes/.hermes/.env <<'EOF'
-WHATSAPP_ENABLED=false
-EOF
     fi
   '';
 
