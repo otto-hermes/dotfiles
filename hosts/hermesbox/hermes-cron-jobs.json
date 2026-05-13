@@ -39,6 +39,26 @@
       "deliver": "local",
       "prompt": "No-agent watchdog: run deterministic Otto health checks and deliver stdout verbatim only when the script reports actionable alerts. The script is intentionally quiet when healthy. Do not attach skills or model reasoning.",
       "enabled_toolsets": []
+    },
+    {
+      "id": "b1e49240f54b",
+      "name": "wiki-weekly-maintenance-lint",
+      "schedule": "0 9 * * 1",
+      "no_agent": true,
+      "script": "wiki-lint.py",
+      "deliver": "telegram",
+      "prompt": "Weekly wiki maintenance: run wiki-lint.py to scan all .md files for broken wikilinks, stale frontmatter, missing tags, pages exceeding 100 lines, and orphan pages. Deliver findings to Telegram home channel. The script exits 0 when clean and 1 with a structured report when issues are found.",
+      "enabled_toolsets": []
+    },
+    {
+      "id": "d738ab8d4f66",
+      "name": "wiki-monthly-contradiction-scan",
+      "schedule": "0 9 1 * *",
+      "no_agent": true,
+      "script": "wiki-contradiction.py",
+      "deliver": "telegram",
+      "prompt": "Monthly wiki contradiction and redundancy scan: run wiki-contradiction.py to detect overlapping topics, contradictory information, and redundant pages across the wiki. Deliver findings to Telegram home channel. The script exits 0 when clean and 1 with a structured report when overlaps/contradictions are detected.",
+      "enabled_toolsets": []
     }
   ]
 }

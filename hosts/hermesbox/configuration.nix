@@ -40,6 +40,8 @@ in
     shellAliases = {
       ll = "ls -lah";
       rebuild = "sudo nixos-rebuild switch --flake /home/hermes/dotfiles#hermesbox";
+      wiki-index = "/home/hermes/.hermes/scripts/wiki-index.py";
+      wiki-query = "/home/hermes/.hermes/scripts/wiki-query.py";
     };
   };
 
@@ -48,6 +50,8 @@ in
     shellAliases = {
       ll = "ls -lah";
       rebuild = "sudo nixos-rebuild switch --flake /home/hermes/dotfiles#hermesbox";
+      wiki-index = "/home/hermes/.hermes/scripts/wiki-index.py";
+      wiki-query = "/home/hermes/.hermes/scripts/wiki-query.py";
     };
   };
 
@@ -95,6 +99,7 @@ in
   environment.systemPackages = with pkgs; [
     btop
     chromium
+    codex
     curl
     espeak-ng
     fastfetch
