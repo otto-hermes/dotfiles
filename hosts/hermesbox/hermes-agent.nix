@@ -117,6 +117,7 @@ in
 
     # Keep the CLI and gateway on the same managed state directory.
     addToSystemPackages = true;
+    extraDependencyGroups = [ "messaging" ];
 
     # Transition-safe secret loading: keep the legacy operator-managed env file
     # as fallback, then let sops-nix's generated runtime env override it when
@@ -126,6 +127,9 @@ in
       "/home/hermes/.keys/hermes.env"
       config.sops.secrets."hermes/env".path
     ];
+    environment = {
+      WHATSAPP_ENABLED = "false";
+    };
 
     settings = {
       model = {
@@ -294,14 +298,23 @@ in
 
   system.activationScripts."hermes-keys" = lib.stringAfter [ "hermes-agent-setup" ] ''
     install -d -m 0700 -o hermes -g hermes /home/hermes/.keys
-    if [ -e ${config.sops.secrets."hermes/env".path} ]; then
-      ln -sfn ${config.sops.secrets."hermes/env".path} /home/hermes/.hermes/.env
-      chown -h hermes:hermes /home/hermes/.hermes/.env
+    install -d -m 2770 -o hermes -g hermes /home/hermes/.hermes
+    if [ -e /var/lib/hermes/.hermes/.env ]; then
+      rm -f /home/hermes/.hermes/.env
+      install -m 0640 -o hermes -g hermes /var/lib/hermes/.hermes/.env /home/hermes/.hermes/.env
+      cat >> /home/hermes/.hermes/.env <<'EOF'
+WHATSAPP_ENABLED=false
+EOF
+      chown hermes:hermes /home/hermes/.hermes/.env
+      chmod 0640 /home/hermes/.hermes/.env
     elif [ -e /home/hermes/.keys/hermes.env ]; then
       chown hermes:hermes /home/hermes/.keys/hermes.env
       chmod 0600 /home/hermes/.keys/hermes.env
-      ln -sfn /home/hermes/.keys/hermes.env /home/hermes/.hermes/.env
-      chown -h hermes:hermes /home/hermes/.hermes/.env
+      rm -f /home/hermes/.hermes/.env
+      install -m 0640 -o hermes -g hermes /home/hermes/.keys/hermes.env /home/hermes/.hermes/.env
+      cat >> /home/hermes/.hermes/.env <<'EOF'
+WHATSAPP_ENABLED=false
+EOF
     fi
   '';
 
