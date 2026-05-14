@@ -147,6 +147,7 @@ in
       toolsets = [ "all" ];
       agent = {
         max_turns = 100;
+        reasoning_effort = "medium";
       };
       skills = {
         creation_nudge_interval = 50;
