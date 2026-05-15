@@ -57,6 +57,23 @@ let
     exit 1
   '';
 
+  contextUsagePython = pkgs.python3.withPackages (ps: [ ps.tiktoken ]);
+
+  hermesContextUsageDashboard = pkgs.writeShellScript "hermes-context-usage-dashboard" ''
+    set -euo pipefail
+
+    for _ in $(${pkgs.coreutils}/bin/seq 1 60); do
+      tail_ip="$(${pkgs.tailscale}/bin/tailscale ip -4 2>/dev/null | ${pkgs.coreutils}/bin/head -n1 || true)"
+      if [ -n "$tail_ip" ]; then
+        exec ${contextUsagePython}/bin/python3 /home/hermes/dotfiles/hosts/hermesbox/scripts/context-usage-dashboard.py --host "$tail_ip" --port 9121
+      fi
+      ${pkgs.coreutils}/bin/sleep 2
+    done
+
+    echo "tailscale IPv4 address was not available for Hermes context usage dashboard binding" >&2
+    exit 1
+  '';
+
   hermesAuthReset = pkgs.writeShellScript "hermes-auth-reset" ''
     set -euo pipefail
     export HOME=/home/hermes
@@ -292,6 +309,34 @@ in
       ProtectHome = false;
       ReadWritePaths = [
         "/home/hermes"
+      ];
+    };
+  };
+
+  systemd.services.hermes-context-usage-dashboard = {
+    description = "Hermes prompt/context token usage dashboard";
+    after = [ "network-online.target" "tailscaled-autoconnect.service" ];
+    wants = [ "network-online.target" "tailscaled-autoconnect.service" ];
+    wantedBy = [ "multi-user.target" ];
+    environment = {
+      HOME = "/home/hermes";
+      HERMES_HOME = "/home/hermes/.hermes";
+    };
+    serviceConfig = {
+      Type = "simple";
+      User = "hermes";
+      Group = "hermes";
+      WorkingDirectory = "/home/hermes";
+      ExecStart = hermesContextUsageDashboard;
+      Restart = "on-failure";
+      RestartSec = "5s";
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      ProtectSystem = "strict";
+      ProtectHome = false;
+      ReadOnlyPaths = [
+        "/home/hermes/.hermes"
+        "/home/hermes/dotfiles"
       ];
     };
   };
