@@ -11,17 +11,28 @@
     };
   };
 
-  outputs = { nixpkgs, hermes-agent, sops-nix, codex-cli-nix, ... }: {
-    nixosConfigurations.hermesbox = nixpkgs.lib.nixosSystem {
+  outputs = { nixpkgs, hermes-agent, sops-nix, codex-cli-nix, ... }:
+    let
       system = "aarch64-linux";
-      specialArgs = {
-        inherit hermes-agent codex-cli-nix;
+      pkgs = import nixpkgs { inherit system; };
+      herm-tui = pkgs.callPackage ./packages/herm-tui.nix { };
+    in
+    {
+      packages.${system} = {
+        herm-tui = herm-tui;
+        default = herm-tui;
       };
-      modules = [
-        hermes-agent.nixosModules.default
-        sops-nix.nixosModules.sops
-        ./hosts/hermesbox/configuration.nix
-      ];
+
+      nixosConfigurations.hermesbox = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = {
+          inherit hermes-agent codex-cli-nix herm-tui;
+        };
+        modules = [
+          hermes-agent.nixosModules.default
+          sops-nix.nixosModules.sops
+          ./hosts/hermesbox/configuration.nix
+        ];
+      };
     };
-  };
 }

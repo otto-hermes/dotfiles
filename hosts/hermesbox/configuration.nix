@@ -1,7 +1,15 @@
-{ lib, pkgs, codex-cli-nix, ... }:
+{ lib, pkgs, codex-cli-nix, herm-tui, ... }:
 
 let
   sshKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7xbK04FcadV9+BFH7Zw4SOWnULsIIF9Xt6b+EXx5nvhnZVDkKerlvcM2NqpY+aIvNlXxERccgNpynxmuz9yqXYCpLjD4L1s5RZeAsR68Z26x4xt6ndGzW5KXrHp7yxPtIwo/oBw4S3JsdmuWQrCKZuabpqlsIyL4IknTDEh/p/BatkdySC5spfFqFOZxTpBWCPGug4hxICsQE9gHSIEqbN/MdYvYYTsvksBXfGPLePHUzi+f8rNNXH6ck7+RLYzw3syhxcgfJHXEmsYaQDvqOYQmzwdR+c2ZzoR3p8nk/3BEKlf0t8LkfkPrLnIHLpexgqYMUMRhupyRlkPx8mUwJ ssh-key-2026-05-01";
+
+  updateHermTui = pkgs.writeShellApplication {
+    name = "update-herm-tui";
+    runtimeInputs = with pkgs; [ nodejs python3 ];
+    text = ''
+      exec /home/hermes/dotfiles/hosts/hermesbox/scripts/update-herm-tui.py "$@"
+    '';
+  };
 in
 {
   imports = [
@@ -108,7 +116,9 @@ in
     fish
     git
     htop
+    herm-tui
     jq
+    updateHermTui
     neovim
     nix-output-monitor
     python3
