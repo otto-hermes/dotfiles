@@ -15,7 +15,10 @@
     let
       system = "aarch64-linux";
       pkgs = import nixpkgs { inherit system; };
-      herm-tui = pkgs.callPackage ./packages/herm-tui.nix { };
+      hermesAgentPackage = hermes-agent.packages.${system}.default;
+      herm-tui = pkgs.callPackage ./packages/herm-tui.nix {
+        inherit hermesAgentPackage;
+      };
     in
     {
       packages.${system} = {

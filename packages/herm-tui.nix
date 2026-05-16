@@ -1,4 +1,4 @@
-{ lib, stdenvNoCC, fetchurl, bun, makeWrapper }:
+{ lib, stdenvNoCC, fetchurl, bun, makeWrapper, hermesAgentPackage ? null }:
 
 let
   version = "1.5.0";
@@ -40,9 +40,26 @@ stdenvNoCC.mkDerivation {
     cp -R herm-tui/. "$app_dir/"
     cp -R opentui-core/. "$app_dir/node_modules/@opentui/core-linux-arm64/"
 
-    makeWrapper ${bun}/bin/bun "$out/bin/herm" \
-      --add-flags "$app_dir/index.js" \
+    wrapper_args=(
+      --add-flags "$app_dir/index.js"
       --set-default HERMES_HOME /home/hermes/.hermes
+    )
+
+    ${lib.optionalString (hermesAgentPackage != null) ''
+      # herm-tui spawns `python -m tui_gateway.entry`. On NixOS, that module
+      # lives in Hermes Agent's wrapped Python env, not in system python3.
+      hermes_python="$(sed -n "s/^export HERMES_PYTHON='\([^']*\)'$/\1/p" ${lib.getExe hermesAgentPackage})"
+      if [ -z "$hermes_python" ]; then
+        echo "could not extract HERMES_PYTHON from ${lib.getExe hermesAgentPackage}" >&2
+        exit 1
+      fi
+      wrapper_args+=(
+        --set HERMES_PYTHON "$hermes_python"
+        --set-default HERMES_AGENT_ROOT ${hermesAgentPackage}
+      )
+    ''}
+
+    makeWrapper ${bun}/bin/bun "$out/bin/herm" "''${wrapper_args[@]}"
 
     runHook postInstall
   '';
