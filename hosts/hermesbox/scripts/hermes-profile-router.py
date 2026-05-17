@@ -124,6 +124,7 @@ def tokenize(text: str, *, expand_aliases: bool = True) -> set[str]:
 
     aliases = {
         "code": ["coding", "programming", "bug", "debug", "debugging", "fix", "failing", "failure", "test", "tests", "pytest", "python", "repo", "github", "pr"],
+        "setup": ["nixos", "nix", "dotfiles", "flake", "home-manager", "hermes", "profile", "profiles", "router", "routing", "toolset", "toolsets", "provider", "providers", "cron", "cronjob", "gateway", "dashboard", "tailscale", "systemd", "service", "services", "package", "packages", "config"],
         "media": ["image", "video", "audio", "tts", "song", "music", "gif", "poster", "visual"],
         "research": ["search", "web", "compare", "lookup", "current", "news", "papers"],
         "knowledge": ["wiki", "memory", "obsidian", "notes", "curate", "curation", "index", "summarize"],
@@ -170,18 +171,16 @@ def guardrail_decision(message: str, profiles: list[Profile]) -> dict[str, Any] 
     msg = message.lower()
 
     mutation = matches_any(msg, [
-        r"\b(edit|configure|config(?:ure)?|change|modify|patch|update|add|remove|delete|fix|implement|refactor|build|write|create|install|enable|disable|switch|rebuild|deploy)\b",
+        r"\b(edit|configure|config(?:ure)?|change|modify|patch|update|add|remove|delete|fix|implement|refactor|build|write|create|install|enable|disable|switch|rebuild|deploy|setup)\b|\bset up\b",
     ])
     code_domain = matches_any(msg, [
         r"\b(code|coding|software|debug|bug|test|tests|pytest|repo|repository|git|github|pr|pull request|branch|commit)\b",
     ])
-    hermes_config_domain = matches_any(msg, [
-        r"\b(nixos|nix|dotfiles?|flake|home-manager|hermes(?: agent)?|provider|providers|toolset|toolsets|profile|profiles|router|routing|cron|cronjob|gateway)\b",
+    setup_domain = matches_any(msg, [
+        r"\b(nixos|nix|dotfiles?|flake|home-manager|hermes(?: agent)?|provider|providers|toolset|toolsets|profile|profiles|router|routing|route_task|cron|cronjob|gateway|dashboard|tailscale|systemd|timer|timers|service|services|package|packages|plugin|plugins|compression|context|token usage)\b",
     ])
-    config_mutation_domain = code_domain or hermes_config_domain or (
-        mutation and matches_any(msg, [r"\b(systemd|service|package|packages?)\b"])
-    )
-    code_or_config_domain = code_domain or hermes_config_domain
+    config_mutation_domain = code_domain or setup_domain
+    code_or_config_domain = code_domain or setup_domain
 
     chat_only = matches_any(msg, [
         r"\b(chat only|just chat|conversation only|no tools|don['’]?t do anything|do not do anything)\b",
@@ -196,13 +195,16 @@ def guardrail_decision(message: str, profiles: list[Profile]) -> dict[str, Any] 
     ]):
         return decision_for(first_available(profiles, ["planner", "default"]), 0.9, "guardrail: planning/architecture/decomposition")
 
-    if mutation and config_mutation_domain:
-        return decision_for(first_available(profiles, ["codex-worker"]), 0.95, "guardrail: coding/NixOS/Hermes config mutation")
+    if mutation and setup_domain:
+        return decision_for(first_available(profiles, ["setup-worker", "coding"]), 0.95, "guardrail: system/Hermes setup mutation")
 
-    if hermes_config_domain and matches_any(msg, [
-        r"\b(check|inspect|review|audit|validate|verify|make sure|up to snuff|look at)\b",
+    if setup_domain and matches_any(msg, [
+        r"\b(check|inspect|review|audit|validate|verify|make sure|up to snuff|look at|debug|troubleshoot)\b",
     ]):
-        return decision_for(first_available(profiles, ["codex-worker"]), 0.9, "guardrail: NixOS/Hermes/profile/router review")
+        return decision_for(first_available(profiles, ["setup-worker", "coding"]), 0.9, "guardrail: system/Hermes setup review")
+
+    if mutation and code_domain:
+        return decision_for(first_available(profiles, ["coding", "setup-worker"]), 0.95, "guardrail: project coding mutation")
 
     if matches_any(msg, [r"\b(session|sessions|transcript|transcripts)\b.*\b(index|summar|summary|summaries)", r"\bindex .*session"]):
         return decision_for(first_available(profiles, ["session-indexer", "knowledge-curator"]), 0.92, "guardrail: session indexing/summarization")

@@ -119,7 +119,8 @@ Specialist profiles:
 - No need for `routing` by default. They should execute within their domain, not recursively orchestrate, unless a specific profile is intentionally an orchestrator/planner.
 - Keep existing declared toolsets:
   - `worker`: cheap/read-mostly local inspection.
-  - `codex-worker`: code, NixOS, Hermes config, tests, git.
+  - `coding`: project code, tests, repos, GitHub, PRs.
+  - `setup-worker`: NixOS, dotfiles, Hermes config/profiles/router/toolsets/providers, services, cronjobs, Tailscale, host behavior.
   - `planner`: architecture and decomposition.
   - `research-worker`: web/current facts.
   - `productivity-worker`: email/docs/calendar/reporting.

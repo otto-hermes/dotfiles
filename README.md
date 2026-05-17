@@ -34,7 +34,8 @@ not hand-edit them as the long-term fix.
 Expected Nix-managed wrapper commands on `hermesbox`:
 
 - `worker` — cheap/read-mostly local inspection profile.
-- `codex-worker` — coding and declarative Nix/Hermes configuration profile.
+- `coding` — project coding, tests, repo, GitHub, and PR profile.
+- `setup-worker` — NixOS/dotfiles/Hermes machine setup and declarative config profile.
 - `planner` — implementation planning and task decomposition profile.
 - `research-worker` — web/current-facts research profile.
 - `productivity-worker` — email/docs/calendar/reporting profile.
@@ -63,8 +64,9 @@ Wrapper lifecycle:
 Recovery/audit commands:
 
 ```bash
-command -v codex-worker hermes-profile-router
-head -20 /run/current-system/sw/bin/codex-worker
+command -v coding setup-worker hermes-profile-router
+head -20 /run/current-system/sw/bin/coding
+head -20 /run/current-system/sw/bin/setup-worker
 hermes-profile-router list
 sudo nixos-rebuild build --flake /home/hermes/dotfiles#hermesbox
 sudo nixos-rebuild switch --flake /home/hermes/dotfiles#hermesbox

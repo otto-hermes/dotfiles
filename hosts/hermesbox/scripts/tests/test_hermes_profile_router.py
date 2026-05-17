@@ -52,11 +52,20 @@ def profiles():
             priority=80,
         ),
         router.Profile(
-            name="codex-worker",
-            summary="Coding and declarative Nix/Hermes configuration worker using the Codex subscription model.",
-            tags=["coding", "debugging", "repo", "tests", "git", "github", "nixos", "hermes", "profiles", "router"],
-            use_for=["software development, debugging, tests, refactors, repository edits", "NixOS/dotfiles/Hermes Agent config/profile/router/toolset/provider/service/package changes", "GitHub/PR work"],
+            name="coding",
+            summary="Project coding worker for repos, tests, debugging, refactors, GitHub, and PR work.",
+            tags=["coding", "debugging", "repo", "tests", "git", "github", "pr", "software"],
+            use_for=["software development, project coding, debugging, tests, refactors, repository edits", "GitHub issues, branches, commits, pull requests, and code review"],
+            avoid_for=["NixOS, dotfiles, machine setup, systemd, Tailscale, Hermes Agent config, profiles, router, toolsets, providers, services, packages, cronjobs"],
             priority=70,
+        ),
+        router.Profile(
+            name="setup-worker",
+            summary="System setup worker for the Hermes machine: NixOS, dotfiles, Hermes config/profiles/router/toolsets/providers, services, cronjobs, Tailscale, packages, and declarative host behavior.",
+            tags=["setup", "system", "nixos", "dotfiles", "hermes", "profiles", "router", "toolsets", "providers", "services", "systemd", "packages", "cron", "cronjob", "gateway", "dashboard", "tailscale", "config"],
+            use_for=["NixOS, dotfiles, flakes, system packages, systemd services, timers, hardening, Tailscale, and host-level configuration", "Hermes Agent config, profiles, router, route_task, toolsets, providers, plugins, gateway, dashboard, cronjobs, and context/compression behavior", "anything that changes how the Hermes agent or its machine behaves"],
+            avoid_for=["ordinary project coding, application features, repo refactors, tests, GitHub PR work unless the repo is the dotfiles/Hermes setup itself"],
+            priority=85,
         ),
         router.Profile(
             name="fallback-full",
@@ -128,7 +137,7 @@ class ProfileRouterPlanTests(unittest.TestCase):
 
         self.assertEqual(result["strategy"], "conditional")
         self.assertEqual(result["steps"][0]["profile"], "worker")
-        self.assertEqual(result["steps"][1]["profile"], "codex-worker")
+        self.assertEqual(result["steps"][1]["profile"], "coding")
 
     def test_explicit_scheduled_wiki_scan_prefers_wiki_linter(self):
         result = router.plan("run the monthly wiki contradiction scan", profiles())
@@ -148,15 +157,15 @@ class ProfileRouterPlanTests(unittest.TestCase):
         self.assertEqual(result["strategy"], "atomic")
         self.assertEqual(result["steps"][0]["profile"], "fallback-full")
 
-    def test_nixos_profile_edits_use_codex_worker(self):
+    def test_nixos_profile_edits_use_setup_worker(self):
         result = router.plan("edit nixos config for hermes profiles", profiles())
 
-        self.assertEqual(result["steps"][0]["profile"], "codex-worker")
+        self.assertEqual(result["steps"][0]["profile"], "setup-worker")
 
-    def test_hermes_provider_config_uses_codex_worker(self):
+    def test_hermes_provider_config_uses_setup_worker(self):
         result = router.plan("configure Hermes Agent fallback providers", profiles())
 
-        self.assertEqual(result["steps"][0]["profile"], "codex-worker")
+        self.assertEqual(result["steps"][0]["profile"], "setup-worker")
 
     def test_port_check_uses_worker(self):
         result = router.plan("check port 443 and summarize what is listening", profiles())
@@ -183,10 +192,10 @@ class ProfileRouterPlanTests(unittest.TestCase):
 
         self.assertEqual(result["steps"][0]["profile"], "default")
 
-    def test_nixos_config_review_uses_codex_worker_not_worker(self):
+    def test_nixos_config_review_uses_setup_worker_not_worker(self):
         result = router.plan("check our nixos config and make sure everything is up to snuff", profiles())
 
-        self.assertEqual(result["steps"][0]["profile"], "codex-worker")
+        self.assertEqual(result["steps"][0]["profile"], "setup-worker")
 
     def test_session_history_wiki_update_uses_knowledge_not_research(self):
         result = router.plan("search recent sessions and update the Otto wiki", profiles())
@@ -213,10 +222,25 @@ class ProfileRouterPlanTests(unittest.TestCase):
         self.assertEqual(result["steps"][0]["profile"], "fallback-full")
         self.assertNotEqual(result["steps"][0]["profile"], "worker")
 
-    def test_add_cron_job_uses_codex_worker(self):
+    def test_add_cron_job_uses_setup_worker(self):
         result = router.plan("add a cron job that watches disk usage", profiles())
 
-        self.assertEqual(result["steps"][0]["profile"], "codex-worker")
+        self.assertEqual(result["steps"][0]["profile"], "setup-worker")
+
+    def test_project_tests_use_coding_not_setup_worker(self):
+        result = router.plan("fix a failing pytest suite in my Python repo and open a PR", profiles())
+
+        self.assertEqual(result["steps"][0]["profile"], "coding")
+
+    def test_tailscale_setup_uses_setup_worker(self):
+        result = router.plan("set up Tailscale for the Hermes dashboard", profiles())
+
+        self.assertEqual(result["steps"][0]["profile"], "setup-worker")
+
+    def test_dashboard_debugging_uses_setup_worker(self):
+        result = router.plan("debug the Hermes dashboard websocket issue", profiles())
+
+        self.assertEqual(result["steps"][0]["profile"], "setup-worker")
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ let
     "file"
   ];
 
-  codexToolsets = [
+  codingToolsets = [
     "terminal"
     "file"
     "code_execution"
@@ -18,6 +18,19 @@ let
     "session_search"
     "todo"
     "clarify"
+  ];
+
+  setupToolsets = [
+    "terminal"
+    "file"
+    "code_execution"
+    "web"
+    "skills"
+    "memory"
+    "session_search"
+    "todo"
+    "clarify"
+    "cronjob"
   ];
 
   plannerToolsets = [
@@ -247,7 +260,7 @@ let
       terminal = workerBase.terminal // { timeout = 60; };
     };
 
-    codex-worker = baseSettings // {
+    coding = baseSettings // {
       model = {
         provider = "openai-codex";
         default = "gpt-5.5";
@@ -267,7 +280,36 @@ let
         ] ++ disabledProductivity ++ disabledResearch;
       };
       terminal = baseSettings.terminal // { timeout = 180; };
-      toolsets = codexToolsets;
+      toolsets = codingToolsets;
+    };
+
+    setup-worker = baseSettings // {
+      model = {
+        provider = "openai-codex";
+        default = "gpt-5.5";
+      };
+      agent = {
+        max_turns = 70;
+        reasoning_effort = "medium";
+      };
+      memory = broadMemory;
+      compression = specialistCompression;
+      skills = {
+        creation_nudge_interval = 50;
+        disabled = [
+          "all-creative"
+          "all-media"
+          "all-social"
+          "all-github"
+          "all-productivity"
+          "all-research"
+          "arxiv"
+          "blogwatcher"
+          "polymarket"
+        ];
+      };
+      terminal = baseSettings.terminal // { timeout = 240; };
+      toolsets = setupToolsets;
     };
 
     planner = baseSettings // {
@@ -403,20 +445,38 @@ let
       fallback = false;
     };
 
-    codex-worker = {
-      summary = "Coding and declarative Nix/Hermes configuration worker using the Codex subscription model.";
-      tags = [ "coding" "debugging" "repo" "tests" "git" "github" "nixos" "dotfiles" "hermes" "profiles" "router" "toolsets" "providers" "services" "packages" ];
+    coding = {
+      summary = "Project coding worker using the Codex subscription model for repos, tests, debugging, refactors, GitHub, and PR work.";
+      tags = [ "coding" "debugging" "repo" "tests" "pytest" "git" "github" "pr" "pull-request" "branch" "commit" "software" "python" ];
       use_for = [
-        "software development, debugging, tests, refactors, repository edits"
-        "NixOS/dotfiles/Hermes Agent config/profile/router/toolset/provider/service/package changes"
-        "GitHub/PR work"
+        "software development, project coding, debugging, tests, refactors, repository edits"
+        "GitHub issues, branches, commits, pull requests, and code review"
       ];
       avoid_for = [
+        "NixOS, dotfiles, machine setup, systemd, Tailscale, Hermes Agent config, profiles, router, toolsets, providers, services, packages, cronjobs"
         "image, video, audio, or other media generation"
         "pure wiki/session curation tasks that can use the cheaper knowledge-curator"
         "chat-only opinions or lightweight conversation that should stay on default"
       ];
       priority = 70;
+      fallback = false;
+    };
+
+    setup-worker = {
+      summary = "System setup worker for the Hermes machine: NixOS, dotfiles, Hermes config/profiles/router/toolsets/providers, services, cronjobs, Tailscale, packages, and declarative host behavior.";
+      tags = [ "setup" "system" "nixos" "nix" "dotfiles" "flake" "home-manager" "hermes" "profiles" "router" "routing" "toolsets" "providers" "services" "systemd" "packages" "cron" "cronjob" "gateway" "dashboard" "tailscale" "machine" "config" ];
+      use_for = [
+        "NixOS, dotfiles, flakes, system packages, systemd services, timers, hardening, Tailscale, and host-level configuration"
+        "Hermes Agent config, profiles, router, route_task, toolsets, providers, plugins, gateway, dashboard, cronjobs, and context/compression behavior"
+        "anything that changes how the Hermes agent or its machine behaves"
+      ];
+      avoid_for = [
+        "ordinary project coding, application features, repo refactors, tests, GitHub PR work unless the repo is the dotfiles/Hermes setup itself"
+        "media generation"
+        "pure wiki/session curation tasks that can use the cheaper knowledge-curator"
+        "chat-only opinions or lightweight conversation that should stay on default"
+      ];
+      priority = 85;
       fallback = false;
     };
 
@@ -569,7 +629,12 @@ let
     '')
     profileRouteMetadata;
 
-  codeTouchingProfiles = [ "codex-worker" "planner" "fallback-full" ];
+  setupTouchingProfiles = [ "setup-worker" ];
+
+  # Retired generated profiles. Keep their directories/state in place, but remove
+  # generated routing/config files so dynamic router scans do not keep seeing
+  # old profile names after a rename.
+  retiredProfiles = [ "codex-worker" ];
 
   profileSoulText = name: meta: ''
     # ${name} SOUL
@@ -583,7 +648,7 @@ let
     - This profile is Nix-managed from /home/hermes/dotfiles. Generated files under /home/hermes/.hermes/profiles/${name}/ are runtime outputs; do not edit runtime profile config as final state.
     - Profile purpose: ${meta.summary}
 
-    ${lib.optionalString (lib.elem name codeTouchingProfiles) ''
+    ${lib.optionalString (lib.elem name setupTouchingProfiles) ''
     Declarative change rule:
     - Durable NixOS, Hermes, profile, router, toolset, model, provider, service, or package changes must be patched in /home/hermes/dotfiles and verified with an appropriate check/rebuild path. Do not treat edits to generated runtime profile files as final state.
     - Prefer Nix/declarative changes over imperative runtime mutation. For this environment, parent agents may run sudo nixos-rebuild switch after review; do not assume generated profile files are the source of truth.
@@ -604,7 +669,7 @@ let
     profileSettings;
 
   # One executable per profile is exposed through environment.systemPackages,
-  # so commands such as `codex-worker` and `knowledge-curator` live in
+  # so commands such as `coding`, `setup-worker`, and `knowledge-curator` live in
   # /run/current-system/sw/bin after a rebuild. They intentionally do not depend
   # on ~/.local/bin aliases; /run/current-system/sw/bin is the canonical PATH
   # location for Nix-managed wrappers on hermesbox.
@@ -649,5 +714,10 @@ in
       install -d -m 0755 -o hermes -g hermes /home/hermes/.hermes/profiles/${lib.escapeShellArg name}
       install -m 0644 -o hermes -g hermes ${profileSoul} /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/SOUL.md
     '') profileSouls)}
+    ${lib.concatMapStringsSep "\n" (name: ''
+      rm -f /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/config.yaml \
+        /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/PROFILE.md \
+        /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/SOUL.md
+    '') retiredProfiles}
   '';
 }
