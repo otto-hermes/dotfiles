@@ -16,6 +16,7 @@ in
     ./hardware-configuration.nix
     ./sops-secrets.nix
     ./hermes-agent.nix
+    ./hermes-profiles.nix
     ./himalaya.nix
     ./tailscale.nix
   ];
