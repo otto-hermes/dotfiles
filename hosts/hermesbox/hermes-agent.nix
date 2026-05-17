@@ -121,6 +121,18 @@ let
     exec ${pkgs.nodejs_22}/bin/npx -y hyperframes@0.4.45 "$@"
   '';
 
+  hermesRoutingPlugin = pkgs.stdenvNoCC.mkDerivation {
+    pname = "hermes-routing-plugin";
+    version = "0.1.0";
+    src = ./plugins/routing;
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out
+      cp -r . $out/
+      runHook postInstall
+    '';
+  };
+
   defaultSoul = pkgs.writeText "hermes-default-SOUL.md" ''
     # SOUL.md
 
@@ -329,6 +341,7 @@ in
       approvals.mode = "off";
       security.tirith_enabled = false;
       unauthorized_dm_behavior = "pair";
+      plugins.enabled = [ "routing" ];
 
       telegram = {
       };
@@ -337,6 +350,10 @@ in
       };
       platforms.whatsapp.extra.bridge_script = "/home/hermes/.hermes/platforms/whatsapp/bridge/bridge.js";
     };
+
+    extraPlugins = [
+      hermesRoutingPlugin
+    ];
 
     extraPackages = with pkgs; [
       curl
