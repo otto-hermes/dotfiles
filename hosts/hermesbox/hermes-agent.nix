@@ -357,10 +357,14 @@ in
         platformRouterToolsets = defaultRouterToolsets ++ [ "no_mcp" ];
       in {
       model = {
-        provider = "openai-codex";
-        default = "gpt-5.5";
+        provider = "nous";
+        default = "openai/gpt-5.5";
       };
       fallback_providers = [
+        {
+          provider = "openai-codex";
+          model = "gpt-5.5";
+        }
         {
           provider = "openrouter";
           model = "google/gemini-2.5-flash-lite";

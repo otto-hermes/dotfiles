@@ -19,6 +19,7 @@ in
     ./hermes-profiles.nix
     ./himalaya.nix
     ./tailscale.nix
+    ./nginx.nix
   ];
 
   boot.tmp.cleanOnBoot = true;

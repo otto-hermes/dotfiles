@@ -269,6 +269,7 @@ let
     "codebase-inspection"
     "debugging-hermes-tui-commands"
     "declarative-email-on-nixos"
+    "email-sending-workflows"
     "github-auth"
     "github-repo-management"
     "hermes-agent"
@@ -279,6 +280,7 @@ let
     "hermes-setup-improvement-implementer"
     "hermes-setup-improvement-research"
     "hermes-tui-debugging"
+    "himalaya"
     "kanban-orchestrator"
     "kanban-task-creation"
     "kanban-task-router"
@@ -394,6 +396,16 @@ let
     model = "google/gemini-2.5-flash-lite";
   };
 
+  premiumNous = {
+    provider = "nous";
+    model = "openai/gpt-5.5";
+  };
+
+  codexFallback = {
+    provider = "openai-codex";
+    model = "gpt-5.5";
+  };
+
   sharedSkillDirs = [ "/home/hermes/.hermes/skills" ];
 
   profileToolSettings = toolsets:
@@ -409,7 +421,7 @@ let
   baseSettings = {
     approvals.mode = "off";
     security.tirith_enabled = false;
-    fallback_providers = [ cheapAux ];
+    fallback_providers = [ codexFallback cheapAux ];
     auxiliary = {
       compression = cheapAux;
       title_generation = cheapAux;
@@ -501,8 +513,8 @@ let
 
     coding = baseSettings // {
       model = {
-        provider = "openai-codex";
-        default = "gpt-5.5";
+        provider = premiumNous.provider;
+        default = premiumNous.model;
       };
       agent = {
         max_turns = 55;
@@ -520,8 +532,8 @@ let
 
     setup-worker = baseSettings // {
       model = {
-        provider = "openai-codex";
-        default = "gpt-5.5";
+        provider = premiumNous.provider;
+        default = premiumNous.model;
       };
       agent = {
         max_turns = 60;
@@ -539,8 +551,8 @@ let
 
     planner = baseSettings // {
       model = {
-        provider = "openai-codex";
-        default = "gpt-5.5";
+        provider = premiumNous.provider;
+        default = premiumNous.model;
       };
       agent = {
         max_turns = 35;
@@ -596,8 +608,8 @@ let
 
     media-worker = baseSettings // {
       model = {
-        provider = "openai-codex";
-        default = "gpt-5.5";
+        provider = premiumNous.provider;
+        default = premiumNous.model;
       };
       agent = {
         max_turns = 80;
@@ -632,8 +644,8 @@ let
 
     fallback-full = baseSettings // {
       model = {
-        provider = "openai-codex";
-        default = "gpt-5.5";
+        provider = premiumNous.provider;
+        default = premiumNous.model;
       };
       agent = {
         max_turns = 90;
