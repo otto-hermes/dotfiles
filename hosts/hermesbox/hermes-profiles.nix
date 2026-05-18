@@ -3,6 +3,18 @@
 let
   yaml = pkgs.formats.yaml { };
 
+  hermesRoutingPlugin = pkgs.stdenvNoCC.mkDerivation {
+    pname = "hermes-routing-plugin";
+    version = "0.1.0";
+    src = ./plugins/routing;
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out
+      cp -r . $out/
+      runHook postInstall
+    '';
+  };
+
   simpleWorkerToolsets = [
     "terminal"
     "file"
@@ -11,7 +23,6 @@ let
   codingToolsets = [
     "terminal"
     "file"
-    "code_execution"
     "web"
     "skills"
     "memory"
@@ -23,20 +34,16 @@ let
   setupToolsets = [
     "terminal"
     "file"
-    "code_execution"
     "web"
     "skills"
     "memory"
     "session_search"
     "todo"
     "clarify"
-    "cronjob"
   ];
 
   plannerToolsets = [
-    "terminal"
     "file"
-    "code_execution"
     "skills"
     "memory"
     "session_search"
@@ -47,7 +54,6 @@ let
   researchToolsets = [
     "web"
     "browser"
-    "terminal"
     "file"
     "skills"
     "session_search"
@@ -72,7 +78,6 @@ let
   mediaToolsets = [
     "terminal"
     "file"
-    "code_execution"
     "web"
     "browser"
     "vision"
@@ -88,11 +93,12 @@ let
 
   knowledgeToolsets = [
     "file"
-    "code_execution"
     "skills"
     "memory"
     "session_search"
     "terminal"
+    "clarify"
+    "todo"
   ];
 
   fallbackFullToolsets = [
@@ -390,6 +396,16 @@ let
 
   sharedSkillDirs = [ "/home/hermes/.hermes/skills" ];
 
+  profileToolSettings = toolsets:
+    let
+      exposedToolsets = lib.unique (toolsets ++ [ "routing" ]);
+    in {
+      plugins.enabled = [ "routing" ];
+      toolsets = exposedToolsets;
+      platform_toolsets.cli = exposedToolsets ++ [ "no_mcp" ];
+      known_plugin_toolsets.cli = [ "routing" ];
+    };
+
   baseSettings = {
     approvals.mode = "off";
     security.tirith_enabled = false;
@@ -423,6 +439,12 @@ let
     nudge_interval = 50;
   };
 
+  highUseCodexMemory = specialistMemory // {
+    memory_char_limit = 3200;
+    user_char_limit = 1600;
+    nudge_interval = 80;
+  };
+
   broadMemory = specialistMemory // {
     memory_char_limit = 6600;
     user_char_limit = 4125;
@@ -442,6 +464,11 @@ let
     threshold = 0.30;
   };
 
+  highUseCodexCompression = specialistCompression // {
+    target_ratio = 0.15;
+    threshold = 0.25;
+  };
+
   broadCompression = {
     enabled = true;
     protect_last_n = 8;
@@ -457,8 +484,7 @@ let
       creation_nudge_interval = 0;
       disabled = disableExcept workerSkillNames;
     };
-    toolsets = simpleWorkerToolsets;
-  };
+  } // profileToolSettings simpleWorkerToolsets;
 
   profileSettings = rec {
     worker = workerBase // {
@@ -479,19 +505,18 @@ let
         default = "gpt-5.5";
       };
       agent = {
-        max_turns = 60;
+        max_turns = 55;
         reasoning_effort = "medium";
       };
-      memory = specialistMemory;
-      compression = specialistCompression;
+      memory = highUseCodexMemory;
+      compression = highUseCodexCompression;
       skills = {
         external_dirs = sharedSkillDirs;
-        creation_nudge_interval = 50;
+        creation_nudge_interval = 0;
         disabled = disableExcept codingSkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 180; };
-      toolsets = codingToolsets;
-    };
+    } // profileToolSettings codingToolsets;
 
     setup-worker = baseSettings // {
       model = {
@@ -499,19 +524,18 @@ let
         default = "gpt-5.5";
       };
       agent = {
-        max_turns = 70;
+        max_turns = 60;
         reasoning_effort = "medium";
       };
-      memory = broadMemory;
-      compression = specialistCompression;
+      memory = highUseCodexMemory;
+      compression = highUseCodexCompression;
       skills = {
         external_dirs = sharedSkillDirs;
-        creation_nudge_interval = 50;
+        creation_nudge_interval = 0;
         disabled = disableExcept setupSkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 240; };
-      toolsets = setupToolsets;
-    };
+    } // profileToolSettings setupToolsets;
 
     planner = baseSettings // {
       model = {
@@ -526,12 +550,11 @@ let
       compression = specialistCompression;
       skills = {
         external_dirs = sharedSkillDirs;
-        creation_nudge_interval = 50;
+        creation_nudge_interval = 0;
         disabled = disableExcept plannerSkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 120; };
-      toolsets = plannerToolsets;
-    };
+    } // profileToolSettings plannerToolsets;
 
     research-worker = baseSettings // {
       model = {
@@ -546,12 +569,11 @@ let
       compression = specialistCompression;
       skills = {
         external_dirs = sharedSkillDirs;
-        creation_nudge_interval = 50;
+        creation_nudge_interval = 0;
         disabled = disableExcept researchSkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 120; };
-      toolsets = researchToolsets;
-    };
+    } // profileToolSettings researchToolsets;
 
     productivity-worker = baseSettings // {
       model = {
@@ -566,12 +588,11 @@ let
       compression = specialistCompression;
       skills = {
         external_dirs = sharedSkillDirs;
-        creation_nudge_interval = 50;
+        creation_nudge_interval = 0;
         disabled = disableExcept productivitySkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 120; };
-      toolsets = productivityToolsets;
-    };
+    } // profileToolSettings productivityToolsets;
 
     media-worker = baseSettings // {
       model = {
@@ -586,11 +607,10 @@ let
       memory = broadMemory;
       skills = {
         external_dirs = sharedSkillDirs;
-        creation_nudge_interval = 50;
+        creation_nudge_interval = 0;
         disabled = disableExcept mediaSkillNames;
       };
-      toolsets = mediaToolsets;
-    };
+    } // profileToolSettings mediaToolsets;
 
     knowledge-curator = baseSettings // {
       model = {
@@ -602,11 +622,10 @@ let
       memory = broadMemory;
       skills = {
         external_dirs = sharedSkillDirs;
-        creation_nudge_interval = 50;
+        creation_nudge_interval = 0;
         disabled = disableExcept knowledgeSkillNames;
       };
-      toolsets = knowledgeToolsets;
-    };
+    } // profileToolSettings knowledgeToolsets;
 
     session-indexer = profileSettings.knowledge-curator;
     wiki-linter = profileSettings.knowledge-curator;
@@ -624,12 +643,11 @@ let
       memory = broadMemory;
       skills = {
         external_dirs = sharedSkillDirs;
-        creation_nudge_interval = 50;
+        creation_nudge_interval = 0;
         disabled = disableExcept fallbackSkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 240; };
-      toolsets = fallbackFullToolsets;
-    };
+    } // profileToolSettings fallbackFullToolsets;
   };
 
   profileRouteMetadata = {
@@ -851,6 +869,7 @@ let
     - Verify claims with tools when correctness depends on live files, commands, current facts, git state, math, or system state.
     - This profile is Nix-managed from /home/hermes/dotfiles. Generated files under /home/hermes/.hermes/profiles/${name}/ are runtime outputs; do not edit runtime profile config as final state.
     - Profile purpose: ${meta.summary}
+    - Keep this profile's manifest small. If the task needs tools or skills outside this profile's role, route/escalate with `route_task` instead of expanding the job inline.
 
     ${lib.optionalString (lib.elem name setupTouchingProfiles) ''
     Declarative change rule:
@@ -923,6 +942,12 @@ in
     ${lib.concatMapStringsSep "\n" (name: ''
       rm -rf /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/skills
     '') ((lib.attrNames profileSettings) ++ retiredProfiles)}
+
+    ${lib.concatMapStringsSep "\n" (name: ''
+      install -d -m 0755 -o hermes -g hermes /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/plugins
+      ln -sfn ${hermesRoutingPlugin} /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/plugins/nix-managed-hermes-routing-plugin
+      chown -h hermes:hermes /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/plugins/nix-managed-hermes-routing-plugin
+    '') (lib.attrNames profileSettings)}
 
     ${lib.concatMapStringsSep "\n" (name: ''
       rm -f /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/config.yaml \

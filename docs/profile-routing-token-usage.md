@@ -65,6 +65,18 @@ hermes-profile-router choose --json "inspect hermes profile routing"
 hermes-profile-router plan --json "check whether a service is healthy and fix it if broken"
 ```
 
+## Worker manifest policy
+
+Profiles use a two-tier manifest:
+
+- Root `toolsets` records the role intent.
+- `platform_toolsets.cli` is generated from the same list plus `routing` and `no_mcp`, so the actual runtime CLI/dashboard manifest matches the intended role surface and can still escalate.
+- The Nix-managed routing plugin is symlinked into every generated profile's plugin directory; setting `plugins.enabled = [ "routing" ]` alone is not enough when `HERMES_HOME` points at a profile-specific home.
+
+High-use Codex workers (`coding`, `setup-worker`, `planner`) deliberately avoid rare broad tools by default: browser, media, TTS, messaging, delegation, cronjob, computer-use, and generic code execution. They keep terminal/file/web/skills/memory/session/todo/clarify as appropriate, and escalate to `fallback-full` or another specialist when the rare tool is actually needed.
+
+Skill creation nudges are disabled for worker profiles. The skills tool remains available where useful, but periodic skill reminders should not add prompt mass to normal turns.
+
 ## Best practices
 
 - Keep default narrow in both root `toolsets` and per-platform `platform_toolsets`: no terminal, file, browser, web, code execution, delegation, cron, messaging, media, skills, or default MCP servers by default.
