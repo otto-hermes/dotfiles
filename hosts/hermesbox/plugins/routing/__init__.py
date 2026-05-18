@@ -112,7 +112,7 @@ def _run_router(action: str, task: str) -> Tuple[Optional[Dict[str, Any]], Optio
 
 
 def _profiles_from_router() -> List[str]:
-    argv = [_router_bin(), "list", "--json"]
+    argv = [_router_bin(), "list"]
     proc = subprocess.run(
         argv,
         text=True,
@@ -253,8 +253,9 @@ def route_task(args: Dict[str, Any], **_kwargs: Any) -> str:
     if explicit_profile is not None:
         explicit_profile = str(explicit_profile).strip() or None
     mode = str(args.get("mode", "foreground")).strip().lower() or "foreground"
+    floor_value = args.get("confidence_floor", args.get("max_confidence_floor", DEFAULT_CONFIDENCE_FLOOR))
     try:
-        floor = float(args.get("max_confidence_floor", DEFAULT_CONFIDENCE_FLOOR))
+        floor = float(floor_value)
     except (TypeError, ValueError):
         floor = DEFAULT_CONFIDENCE_FLOOR
     try:
@@ -327,7 +328,16 @@ ROUTE_TASK_SCHEMA = {
                 "description": "Optional explicit specialist profile for launch; must exist and must not be default.",
             },
             "mode": {"type": "string", "enum": ["foreground", "background"], "default": "foreground"},
-            "max_confidence_floor": {"type": "number", "default": DEFAULT_CONFIDENCE_FLOOR},
+            "confidence_floor": {
+                "type": "number",
+                "default": DEFAULT_CONFIDENCE_FLOOR,
+                "description": "Minimum router confidence required for automatic launch when profile is not explicit.",
+            },
+            "max_confidence_floor": {
+                "type": "number",
+                "default": DEFAULT_CONFIDENCE_FLOOR,
+                "description": "Deprecated alias for confidence_floor.",
+            },
             "timeout_seconds": {"type": "integer", "default": DEFAULT_LAUNCH_TIMEOUT_SECONDS},
         },
         "required": ["action", "task"],

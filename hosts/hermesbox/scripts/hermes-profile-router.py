@@ -443,7 +443,8 @@ def run_plan(route_plan: dict[str, Any]) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Route work to Hermes profiles using dynamic PROFILE.md frontmatter")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("list")
+    p_list = sub.add_parser("list")
+    p_list.add_argument("--json", action="store_true", help="Accepted for symmetry; list output is always JSON")
     p_choose = sub.add_parser("choose")
     p_choose.add_argument("message", nargs="+")
     p_choose.add_argument("--json", action="store_true")

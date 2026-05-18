@@ -1,6 +1,6 @@
 # First-class `route_task` interface for the default profile
 
-Status: design recommendation only. Do not implement until explicitly promoted.
+Status: implemented locally on hermesbox. Keep this as the design contract for the Nix-managed routing plugin and CLI fallback.
 
 ## Problem
 

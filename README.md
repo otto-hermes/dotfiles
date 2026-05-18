@@ -16,7 +16,8 @@ Next intended target:
 
 ## Design docs
 
-- [`docs/route-task-interface.md`](./docs/route-task-interface.md) recommends a first-class `route_task` Hermes tool interface for default-profile delegation without broad terminal access.
+- [`docs/route-task-interface.md`](./docs/route-task-interface.md) documents the first-class `route_task` Hermes tool interface for default-profile delegation without broad terminal access.
+- [`docs/profile-routing-token-usage.md`](./docs/profile-routing-token-usage.md) records the routing/token/cache audit, current policy, and follow-up checklist.
 
 ## Rebuild current VPS
 

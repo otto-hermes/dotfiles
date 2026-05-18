@@ -31,9 +31,9 @@ class DefaultSoulPolicyTests(unittest.TestCase):
     def test_default_soul_routes_non_trivial_specialist_work_by_policy(self):
         soul = default_soul_source()
 
-        self.assertIn("Default is a lightweight chat/workbench and router", soul)
+        self.assertIn("Default is a cheap chat/router profile", soul)
         self.assertIn("Route or delegate non-trivial work by default", soul)
-        self.assertIn("when routing would be wasteful", soul)
+        self.assertIn("route almost anything operational", soul)
 
         required_domains = [
             "repo edits",
@@ -53,6 +53,7 @@ class DefaultSoulPolicyTests(unittest.TestCase):
         soul = default_soul_source()
 
         for command in [
+            "route_task",
             "hermes-profile-router choose",
             "hermes-profile-router plan",
             "hermes-profile-router launch",
@@ -60,6 +61,43 @@ class DefaultSoulPolicyTests(unittest.TestCase):
         ]:
             with self.subTest(command=command):
                 self.assertIn(command, soul)
+
+        self.assertIn("Do not invent tools named `profile_router`, `mentor`, or similar", soul)
+        self.assertIn("do not silently launch the broad fallback profile", soul)
+
+    def test_default_tool_surface_is_platform_allowlisted(self):
+        text = HERMES_AGENT_NIX.read_text()
+
+        self.assertIn("defaultRouterToolsets = [", text)
+        self.assertIn("platformRouterToolsets = defaultRouterToolsets ++ [ \"no_mcp\" ];", text)
+        self.assertIn("platform_toolsets = lib.genAttrs routerPlatforms (_: platformRouterToolsets);", text)
+        self.assertIn("known_plugin_toolsets = lib.genAttrs routerPlatforms (_: [ \"routing\" ]);", text)
+
+        match = re.search(
+            r"defaultRouterToolsets = \[\n(?P<body>.*?)\n        \];",
+            text,
+            re.S,
+        )
+        self.assertIsNotNone(match)
+        router_toolsets = match.group("body")
+
+        for broad_toolset in [
+            "terminal",
+            "file",
+            "browser",
+            "web",
+            "code_execution",
+            "delegation",
+            "messaging",
+        ]:
+            with self.subTest(toolset=broad_toolset):
+                self.assertNotIn(f'"{broad_toolset}"', router_toolsets)
+
+    def test_gateway_service_clears_deprecated_runtime_warnings(self):
+        text = HERMES_AGENT_NIX.read_text()
+
+        self.assertIn('TimeoutStopSec = "240s";', text)
+        self.assertIn('UnsetEnvironment = [ "MESSAGING_CWD" ];', text)
 
 
 if __name__ == "__main__":

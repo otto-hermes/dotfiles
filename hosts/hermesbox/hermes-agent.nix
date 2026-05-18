@@ -283,13 +283,15 @@ let
 
     ## Profile routing
 
-    Default is a lightweight chat/workbench and router, not the normal executor for non-trivial specialist work. It may answer lightweight chat, give quick opinions, run small local checks, inspect files/logs, and do short one-off work when routing would be wasteful.
+    Default is a cheap chat/router profile, not the normal executor for specialist work. It may answer lightweight conversation directly, but it should route almost anything operational.
 
-    Route or delegate non-trivial work by default. This includes repo edits, tests, refactors, GitHub/PR work, NixOS mutations, Hermes/profile/router/toolset/model/provider/service/package changes, media or creative production, knowledge curation, wiki/session/memory work, current-facts research, productivity/document workflows, and any other task clearly owned by a specialist profile.
+    Route or delegate non-trivial work by default. This includes local file/log/status checks, repo edits, tests, refactors, GitHub/PR work, NixOS mutations, Hermes/profile/router/toolset/model/provider/service/package changes, media or creative production, knowledge curation, wiki/session/memory work, current-facts research, productivity/document workflows, and any other task clearly owned by a specialist profile.
 
-    Use the declarative router flow from `/home/hermes/dotfiles/hosts/hermesbox/hermes-profiles.nix`: `hermes-profile-router choose --json "<request>"` for single-profile classification, `hermes-profile-router plan --json "<request>"` for compound or conditional requests, `hermes-profile-router launch "<request>"` for foreground single-profile delegation, and `hermes-profile-router execute-plan "<request>"` for sequential route plans. For long specialist work, prefer `hermes-profile-router launch --background "<request>"`.
+    Prefer the first-class `route_task` tool. Use `action=choose` to classify, `action=plan` for compound or conditional work, and `action=launch` to run a specialist. Use background launch for long-running specialist work. Do not invent tools named `profile_router`, `mentor`, or similar; if `route_task` is unavailable, say that the routing tool is unavailable and give the operator command fallback.
 
-    If routing confidence is low, fall back to the configured fallback profile so work still gets done. Routing metadata is generated declaratively from `/home/hermes/dotfiles/hosts/hermesbox/hermes-profiles.nix`; do not edit generated `PROFILE.md` files directly.
+    Operator/debug fallback only: `/home/hermes/dotfiles/hosts/hermesbox/hermes-profiles.nix` generates `hermes-profile-router choose --json "<request>"`, `hermes-profile-router plan --json "<request>"`, `hermes-profile-router launch "<request>"`, and `hermes-profile-router execute-plan "<request>"`.
+
+    If routing confidence is low, do not silently launch the broad fallback profile. Ask one concise clarification, or use `route_task` with `action=plan`. Routing metadata is generated declaratively from `/home/hermes/dotfiles/hosts/hermesbox/hermes-profiles.nix`; do not edit generated `PROFILE.md` files directly.
   '';
 in
 {
@@ -321,10 +323,42 @@ in
       WHATSAPP_ENABLED = "false";
     };
 
-    settings = {
+    settings =
+      let
+        routerPlatforms = [
+          "cli"
+          "telegram"
+          "discord"
+          "slack"
+          "whatsapp"
+          "signal"
+          "bluebubbles"
+          "email"
+          "homeassistant"
+          "mattermost"
+          "matrix"
+          "dingtalk"
+          "feishu"
+          "wecom"
+          "wecom_callback"
+          "weixin"
+          "qqbot"
+          "yuanbao"
+          "webhook"
+          "api_server"
+          "cron"
+        ];
+        defaultRouterToolsets = [
+          "routing"
+          "clarify"
+          "todo"
+          "memory"
+        ];
+        platformRouterToolsets = defaultRouterToolsets ++ [ "no_mcp" ];
+      in {
       model = {
-        provider = "openai-codex";
-        default = "gpt-5.5";
+        provider = "openrouter";
+        default = "google/gemini-2.5-flash-lite";
       };
       fallback_providers = [
         {
@@ -332,27 +366,15 @@ in
           model = "google/gemini-2.5-flash-lite";
         }
       ];
-      toolsets = [
-        "web"
-        "browser"
-        "terminal"
-        "file"
-        "code_execution"
-        "skills"
-        "todo"
-        "memory"
-        "session_search"
-        "clarify"
-        "delegation"
-        "cronjob"
-        "messaging"
-      ];
+      toolsets = defaultRouterToolsets;
+      platform_toolsets = lib.genAttrs routerPlatforms (_: platformRouterToolsets);
+      known_plugin_toolsets = lib.genAttrs routerPlatforms (_: [ "routing" ]);
       agent = {
-        max_turns = 100;
-        reasoning_effort = "medium";
+        max_turns = 20;
+        reasoning_effort = "low";
       };
       skills = {
-        creation_nudge_interval = 50;
+        creation_nudge_interval = 0;
         disabled = [
           "audiocraft"
           "axolotl"
@@ -383,17 +405,17 @@ in
         timeout = 180;
       };
       memory = {
-        nudge_interval = 50;
+        nudge_interval = 100;
         memory_enabled = true;
         user_profile_enabled = true;
-        memory_char_limit = 6600;
-        user_char_limit = 4125;
+        memory_char_limit = 3200;
+        user_char_limit = 2200;
       };
       compression = {
         enabled = true;
-        threshold = 0.40;
-        target_ratio = 0.20;
-        protect_last_n = 8;
+        threshold = 0.25;
+        target_ratio = 0.15;
+        protect_last_n = 4;
       };
       auxiliary = {
         compression = {
@@ -451,6 +473,8 @@ in
     serviceConfig = {
       # Allow controlled privilege escalation from agent sessions (optional/risky).
       NoNewPrivileges = lib.mkForce false;
+      TimeoutStopSec = "240s";
+      UnsetEnvironment = [ "MESSAGING_CWD" ];
       ReadWritePaths = lib.mkAfter [
         "/home/hermes"
         "/home/hermes/.keys"
