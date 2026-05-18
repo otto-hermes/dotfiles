@@ -4,7 +4,7 @@ Date: 2026-05-18
 
 ## Current policy
 
-The default Hermes profile is a cheap chat/router profile. It uses `openrouter` with `google/gemini-2.5-flash-lite`, low reasoning, a short turn budget, reduced memory limits, and only these default toolsets:
+The default Hermes profile is a narrow Codex chat/router profile. It uses `openai-codex` with `gpt-5.5` as the primary router model, low reasoning, a short turn budget, reduced memory limits, and only these default toolsets. `openrouter` with `google/gemini-2.5-flash-lite` remains as a cheap fallback provider so routing can still answer if Codex is unavailable or exhausted:
 
 - `routing`
 - `clarify`
@@ -13,7 +13,7 @@ The default Hermes profile is a cheap chat/router profile. It uses `openrouter` 
 
 The same narrow allowlist is applied through `platform_toolsets` for all registered Hermes platforms, with `no_mcp` included there so future globally configured MCP servers do not silently add schemas to the default router. This matters because Hermes gateway and CLI sessions resolve actual tool exposure through `platform_toolsets`, not the root `toolsets` list alone.
 
-Operational work should be launched through the first-class `route_task` plugin tool. The broad terminal/file/web/code/media toolsets live on specialist profiles, not on default. Operator CLI fallback remains `hermes-profile-router`, but that is not the model-facing boundary.
+Operational work should be launched through the first-class `route_task` plugin tool. The broad terminal/file/web/code/media toolsets live on specialist profiles, not on default. Operator CLI fallback remains `hermes-profile-router`, but that is not the model-facing boundary. With Codex as the router, usage savings come from the narrow prompt/tool surface and cache locality, not from using a cheaper primary router model.
 
 ## What was good
 
@@ -25,7 +25,7 @@ Operational work should be launched through the first-class `route_task` plugin 
 
 ## What was bad
 
-- Default was not cheap before this change: it used `openai-codex` / `gpt-5.5` with broad tools. That means every ordinary chat/router turn could spend Codex quota before any specialist launched.
+- Before the routing audit, default used `openai-codex` / `gpt-5.5` with broad tools. The model choice was not the only issue; the broad platform tool surface meant every ordinary chat/router turn could spend Codex quota on large fixed tool schemas before any specialist launched.
 - The default prompt still told the model to use CLI router commands, but the safest interface is the `route_task` tool.
 - A plugin bug made explicit-profile launch validation call `hermes-profile-router list --json`, while the CLI `list` command did not accept `--json`. Explicit launches could be rejected as missing profiles.
 - Recent logs showed Codex quota exhaustion and fallback churn on 2026-05-17, including contexts around 55K-73K tokens and one preflight compression at about 111K tokens.
@@ -39,8 +39,8 @@ Switching profiles does not inherently destroy provider prompt cache, but it cre
 
 Best read:
 
-- It helps when default stays small and cheap, and specialist profiles have stable static prefixes.
-- It hurts when default itself is broad/expensive, because a delegated request costs default inference plus specialist inference.
+- It helps when default stays small and narrow, and specialist profiles have stable static prefixes.
+- It hurts when default itself is broad/expensive, because a delegated request costs router inference plus specialist inference. Keeping Codex as router makes the narrow tool surface more important.
 - It can be cold on the first call to a specialist after its prompt/tool/schema prefix changes.
 - It is worse for OpenRouter models whose provider stickiness identifies conversations partly from the first system/developer and first user messages; changing the first user task can reduce provider-local stickiness for some providers.
 - It is still good for OpenAI/Codex-style prefix caching when the static instructions/tools are identical and dynamic task text is at the end.
@@ -88,7 +88,7 @@ hermes-profile-router plan --json "check whether a service is healthy and fix it
 
 ## Follow-up todo
 
-- After 24 hours, compare default input/cache/API-call totals against 2026-05-17. The expected result is far fewer Codex calls from default and lower fixed prompt overhead.
+- After 24 hours, compare default input/cache/API-call totals against 2026-05-17. With Codex restored as the primary router, the expected win is lower fixed prompt/tool overhead and better routing quality, not fewer default Codex calls.
 - Add a profile-by-profile section to `hermes-context-usage-dashboard` so default, `setup-worker`, and other specialist usage are visible without ad hoc SQLite queries.
 - Investigate why request dumps did not include `route_task` in the captured 2026-05-17 failed request if it recurs after this platform-toolset rebuild; inspect plugin discovery and dynamic toolset filtering upstream.
 - Move any messaging/API secrets that ended up in `config.yaml` back to `.env`/sops-managed env files. Config should contain non-secret settings only.
