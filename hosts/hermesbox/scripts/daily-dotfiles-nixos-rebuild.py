@@ -8,6 +8,9 @@ import subprocess
 import sys
 
 UNIT = "hermes-daily-nixos-rebuild.service"
+SUDO = "/run/current-system/sw/bin/sudo"
+SYSTEMCTL = "/run/current-system/sw/bin/systemctl"
+JOURNALCTL = "/run/current-system/sw/bin/journalctl"
 
 
 def run(cmd: list[str], timeout: int | None = None) -> subprocess.CompletedProcess[str]:
@@ -21,12 +24,12 @@ def run(cmd: list[str], timeout: int | None = None) -> subprocess.CompletedProce
 
 
 def main() -> int:
-    start = run(["sudo", "systemctl", "start", UNIT], timeout=2 * 60 * 60 + 60)
+    start = run([SUDO, SYSTEMCTL, "start", UNIT], timeout=2 * 60 * 60 + 60)
     if start.returncode == 0:
         return 0
 
-    status = run(["sudo", "systemctl", "status", "--no-pager", "--full", UNIT], timeout=30)
-    journal = run(["sudo", "journalctl", "-u", UNIT, "-n", "120", "--no-pager", "-o", "short-iso"], timeout=30)
+    status = run([SUDO, SYSTEMCTL, "status", "--no-pager", "--full", UNIT], timeout=30)
+    journal = run([SUDO, JOURNALCTL, "-u", UNIT, "-n", "120", "--no-pager", "-o", "short-iso"], timeout=30)
 
     print(f"Daily NixOS flake update/rebuild failed: {UNIT}")
     print(f"systemctl start exit code: {start.returncode}")

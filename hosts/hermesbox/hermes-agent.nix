@@ -74,6 +74,81 @@ let
     exit 1
   '';
 
+  hermesWorkspace = pkgs.buildNpmPackage rec {
+    pname = "hermes-workspace";
+    version = "2.3.0-e1470084";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "outsourc-e";
+      repo = "hermes-workspace";
+      rev = "e1470084d29eeeba1921752f36d1228f3afc52f1";
+      hash = "sha256-hfWetAUBmyXeB3UIPMLqul5KolXlv5dIUl4TonSWSiA=";
+    };
+
+    # Upstream ships pnpm-lock.yaml only. buildNpmPackage needs a package-lock;
+    # this lock was generated from the selected trial checkout with npm using
+    # the repo's legacy peer-dependency mode, then committed here as build input.
+    postPatch = ''
+      cp ${./hermes-workspace/package-lock.json} package-lock.json
+    '';
+
+    npmDepsHash = "sha256-eMUhJBgTgcudjf3sMTzvv/bdwzmhIYYHSt/AIBZwN3c=";
+    npmFlags = [ "--legacy-peer-deps" ];
+    NODE_OPTIONS = "--max-old-space-size=2048";
+    ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+    PUPPETEER_SKIP_DOWNLOAD = "1";
+    npmBuildScript = "build";
+
+    # buildNpmPackage installs from npm's packed file set; upstream's package
+    # metadata does not include the TanStack Start production build output.
+    # Copy it explicitly so server-entry.js can import dist/server/server.js.
+    postInstall = ''
+      cp -r dist "$out/lib/node_modules/hermes-workspace/"
+    '';
+  };
+
+  hermesWorkspaceDashboard = pkgs.writeShellScript "hermes-workspace-dashboard" ''
+    set -euo pipefail
+
+    for _ in $(${pkgs.coreutils}/bin/seq 1 60); do
+      tail_ip="$(${pkgs.tailscale}/bin/tailscale ip -4 2>/dev/null | ${pkgs.coreutils}/bin/head -n1 || true)"
+      if [ -n "$tail_ip" ]; then
+        set -a
+        if [ -r /home/hermes/.hermes/.env ]; then
+          . /home/hermes/.hermes/.env
+        fi
+        if [ -r /home/hermes/.keys/hermes-workspace.env ]; then
+          . /home/hermes/.keys/hermes-workspace.env
+        fi
+        set +a
+
+        export HOME=/home/hermes
+        export HERMES_HOME=/home/hermes/.hermes
+        export NODE_ENV=production
+        export PORT=9130
+        export HOST="$tail_ip"
+        export COOKIE_SECURE=0
+        export TRUST_PROXY=0
+        export HERMES_API_URL="http://127.0.0.1:8642"
+        export HERMES_DASHBOARD_URL="http://$tail_ip:9119"
+        export HERMES_API_TOKEN="''${HERMES_API_TOKEN:-''${API_SERVER_KEY:-}}"
+        export HERMES_PASSWORD="''${HERMES_PASSWORD:-''${HERMES_WORKSPACE_PASSWORD:-}}"
+
+        if [ -z "''${HERMES_PASSWORD:-}" ]; then
+          echo "HERMES_PASSWORD/HERMES_WORKSPACE_PASSWORD is required for Tailscale-bound Hermes Workspace" >&2
+          exit 1
+        fi
+
+        exec ${pkgs.nodejs_22}/bin/node ${hermesWorkspace}/lib/node_modules/hermes-workspace/server-entry.js
+      fi
+      ${pkgs.coreutils}/bin/sleep 2
+    done
+
+    echo "tailscale IPv4 address was not available for Hermes Workspace binding" >&2
+    exit 1
+  '';
+
   hermesAuthReset = pkgs.writeShellScript "hermes-auth-reset" ''
     set -euo pipefail
     export HOME=/home/hermes
@@ -394,6 +469,14 @@ in
 
       # Keep WhatsApp disabled for now (override env file).
       WHATSAPP_ENABLED = lib.mkForce "false";
+
+      # Keep the Hermes OpenAI-compatible API loopback-only for local companion
+      # services like hermes-workspace. It should not be reachable directly from
+      # Tailscale; the password-protected workspace UI is the remote surface.
+      API_SERVER_ENABLED = lib.mkForce "true";
+      API_SERVER_HOST = lib.mkForce "127.0.0.1";
+      API_SERVER_PORT = lib.mkForce "8642";
+      API_SERVER_KEY = lib.mkForce "";
     };
   };
 
@@ -418,12 +501,53 @@ in
       ExecStart = hermesDashboardTailscale;
       Restart = "on-failure";
       RestartSec = "5s";
-      NoNewPrivileges = true;
+      # Dashboard-spawned TUI sessions dispatch kanban workers. Some setup-worker
+      # tasks are intentionally allowed to sudo for host rebuilds; no_new_privs is
+      # sticky across child processes and makes sudo elevation impossible.
+      NoNewPrivileges = lib.mkForce false;
       PrivateTmp = true;
       ProtectSystem = "strict";
       ProtectHome = false;
       ReadWritePaths = [
         "/home/hermes"
+      ];
+    };
+  };
+
+  systemd.services.hermes-workspace-dashboard = {
+    description = "Hermes Workspace dashboard UI";
+    after = [ "network-online.target" "hermes-agent.service" "hermes-dashboard.service" "tailscaled-autoconnect.service" ];
+    wants = [ "network-online.target" "hermes-agent.service" "hermes-dashboard.service" "tailscaled-autoconnect.service" ];
+    wantedBy = [ "multi-user.target" ];
+    environment = {
+      HOME = "/home/hermes";
+      HERMES_HOME = "/home/hermes/.hermes";
+      SHELL = "${pkgs.bashInteractive}/bin/bash";
+    };
+    path = with pkgs; [
+      bash
+      coreutils
+      nodejs_22
+      tailscale
+    ];
+    serviceConfig = {
+      Type = "simple";
+      User = "hermes";
+      Group = "hermes";
+      WorkingDirectory = "/home/hermes";
+      ExecStart = hermesWorkspaceDashboard;
+      Restart = "on-failure";
+      RestartSec = "5s";
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      ProtectSystem = "strict";
+      ProtectHome = false;
+      ReadOnlyPaths = [
+        "/home/hermes/dotfiles"
+      ];
+      ReadWritePaths = [
+        "/home/hermes/.hermes"
+        "/home/hermes/.keys"
       ];
     };
   };
@@ -467,6 +591,13 @@ in
       chown hermes:hermes /home/hermes/.keys/hermes.env
       chmod 0600 /home/hermes/.keys/hermes.env
     fi
+    if [ ! -e /home/hermes/.keys/hermes-workspace.env ]; then
+      umask 077
+      workspace_password="$(${pkgs.openssl}/bin/openssl rand -base64 32)"
+      printf 'HERMES_WORKSPACE_PASSWORD=%s\n' "$workspace_password" > /home/hermes/.keys/hermes-workspace.env
+    fi
+    chown hermes:hermes /home/hermes/.keys/hermes-workspace.env
+    chmod 0600 /home/hermes/.keys/hermes-workspace.env
     if [ -e /home/hermes/.hermes/.env ]; then
       cat >> /home/hermes/.hermes/.env <<'EOF'
 WHATSAPP_ENABLED=false

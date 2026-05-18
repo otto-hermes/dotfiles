@@ -115,68 +115,280 @@ let
     "tts"
   ];
 
-  disabledHeavySkills = [
-    "audiocraft"
+  allProfileSkillNames = [
+    "airtable"
+    "apple-notes"
+    "apple-reminders"
+    "architecture-diagram"
+    "arxiv"
+    "ascii-art"
+    "ascii-video"
+    "audiocraft-audio-generation"
     "axolotl"
+    "baoyu-comic"
+    "baoyu-infographic"
+    "blogwatcher"
+    "claude-code"
+    "claude-design"
+    "codebase-inspection"
+    "codex"
     "comfyui"
+    "debugging-hermes-tui-commands"
+    "declarative-email-on-nixos"
+    "design-md"
+    "dogfood"
     "dspy"
+    "email-sending-workflows"
+    "evaluating-llms-harness"
+    "excalidraw"
+    "findmy"
+    "fine-tuning-with-trl"
+    "gif-search"
+    "github-auth"
+    "github-code-review"
+    "github-issues"
+    "github-pr-workflow"
+    "github-repo-management"
     "godmode"
+    "google-workspace"
+    "heartmula"
+    "hermes-agent"
+    "hermes-agent-skill-authoring"
+    "hermes-dashboard-operations"
+    "hermes-memory-configuration-audits"
+    "hermes-profile-skill-management"
+    "hermes-setup-improvement-implementer"
+    "hermes-setup-improvement-research"
+    "hermes-tui-debugging"
+    "himalaya"
+    "himalaya-calendar-invites"
     "huggingface-hub"
+    "humanizer"
+    "hyperframes"
+    "hyperframes-design-systems"
+    "ideation"
+    "imessage"
     "jupyter-live-kernel"
+    "kanban-orchestrator"
+    "kanban-task-creation"
+    "kanban-task-router"
+    "kanban-worker"
+    "linear"
     "llama-cpp"
-    "lm-evaluation-harness"
+    "llm-wiki"
+    "locating-files"
+    "macos-computer-use"
+    "manim-video"
+    "maps"
     "minecraft-modpack-server"
+    "nano-pdf"
+    "native-mcp"
+    "nixos-hermes-home-node"
+    "node-inspect-debugger"
+    "notion"
     "obliteratus"
+    "obsidian"
+    "ocr-and-documents"
+    "opencode"
     "openhue"
+    "otto-email-signature"
+    "otto-wiki"
     "outlines"
+    "p5js"
+    "pixel-art"
     "pokemon-player"
-    "segment-anything"
+    "polymarket"
+    "popular-web-designs"
+    "powerpoint"
+    "pretext"
+    "profile-router"
+    "python-debugpy"
+    "requesting-code-review"
+    "research-paper-writing"
+    "segment-anything-model"
+    "serving-llms-vllm"
+    "sketch"
+    "songsee"
+    "songwriting-and-ai-music"
+    "spike"
+    "spotify"
+    "subagent-driven-development"
+    "sync-my-githubs"
+    "systematic-debugging"
+    "tailscale-private-networking"
+    "teams-meeting-pipeline"
+    "test-driven-development"
     "touchdesigner-mcp"
-    "trl-fine-tuning"
     "unsloth"
-    "vllm"
+    "webhook-subscriptions"
     "weights-and-biases"
+    "writing-plans"
+    "xurl"
+    "youtube-content"
+    "youtube-metadata-inventories"
     "yuanbao"
   ];
 
-  disabledMediaCreativeSocial = disabledHeavySkills ++ [
-    "all-creative"
-    "all-media"
-    "all-social"
+  disableExcept = allowed: lib.subtractLists allowed allProfileSkillNames;
+
+  workerSkillNames = [
   ];
 
-  disabledProductivity = [
-    "all-email"
-    "all-productivity"
+  codingSkillNames = [
+    "claude-code"
+    "codebase-inspection"
+    "codex"
+    "debugging-hermes-tui-commands"
+    "github-auth"
+    "github-code-review"
+    "github-issues"
+    "github-pr-workflow"
+    "github-repo-management"
+    "hermes-agent-skill-authoring"
+    "hermes-tui-debugging"
+    "locating-files"
+    "node-inspect-debugger"
+    "opencode"
+    "plan"
+    "python-debugpy"
+    "requesting-code-review"
+    "spike"
+    "subagent-driven-development"
+    "systematic-debugging"
+    "test-driven-development"
+    "writing-plans"
   ];
 
-  disabledResearch = [
-    "all-research"
+  setupSkillNames = [
+    "codebase-inspection"
+    "debugging-hermes-tui-commands"
+    "declarative-email-on-nixos"
+    "github-auth"
+    "github-repo-management"
+    "hermes-agent"
+    "hermes-agent-skill-authoring"
+    "hermes-dashboard-operations"
+    "hermes-memory-configuration-audits"
+    "hermes-profile-skill-management"
+    "hermes-setup-improvement-implementer"
+    "hermes-setup-improvement-research"
+    "hermes-tui-debugging"
+    "kanban-orchestrator"
+    "kanban-task-creation"
+    "kanban-task-router"
+    "kanban-worker"
+    "locating-files"
+    "native-mcp"
+    "nixos-hermes-home-node"
+    "otto-wiki"
+    "plan"
+    "profile-router"
+    "spike"
+    "sync-my-githubs"
+    "systematic-debugging"
+    "tailscale-private-networking"
+    "webhook-subscriptions"
+    "writing-plans"
+  ];
+
+  plannerSkillNames = [
+    "kanban-orchestrator"
+    "kanban-task-creation"
+    "locating-files"
+    "plan"
+    "profile-router"
+    "spike"
+    "systematic-debugging"
+    "writing-plans"
+  ];
+
+  researchSkillNames = [
     "arxiv"
     "blogwatcher"
     "llm-wiki"
+    "locating-files"
+    "maps"
+    "obsidian"
+    "otto-wiki"
     "polymarket"
+    "research-paper-writing"
+    "youtube-content"
+    "youtube-metadata-inventories"
   ];
 
-  disabledCoding = [
-    "all-autonomous-ai-agents"
-    "all-github"
-    "all-software-development"
-    "claude-code"
-    "codex"
-    "opencode"
-    "github-code-review"
-    "github-pr-workflow"
-    "subagent-driven-development"
-    "test-driven-development"
+  productivitySkillNames = [
+    "airtable"
+    "apple-notes"
+    "apple-reminders"
+    "declarative-email-on-nixos"
+    "email-sending-workflows"
+    "findmy"
+    "google-workspace"
+    "himalaya"
+    "himalaya-calendar-invites"
+    "imessage"
+    "linear"
+    "locating-files"
+    "macos-computer-use"
+    "maps"
+    "nano-pdf"
+    "notion"
+    "obsidian"
+    "ocr-and-documents"
+    "otto-email-signature"
+    "powerpoint"
+    "teams-meeting-pipeline"
+    "xurl"
   ];
 
-  disabledDevHeavy = disabledMediaCreativeSocial ++ disabledCoding;
+  mediaSkillNames = [
+    "architecture-diagram"
+    "ascii-art"
+    "ascii-video"
+    "baoyu-comic"
+    "baoyu-infographic"
+    "claude-design"
+    "design-md"
+    "excalidraw"
+    "gif-search"
+    "heartmula"
+    "humanizer"
+    "hyperframes"
+    "hyperframes-design-systems"
+    "ideation"
+    "locating-files"
+    "manim-video"
+    "p5js"
+    "pixel-art"
+    "popular-web-designs"
+    "pretext"
+    "sketch"
+    "songsee"
+    "songwriting-and-ai-music"
+    "spotify"
+    "youtube-content"
+    "youtube-metadata-inventories"
+  ];
+
+  knowledgeSkillNames = [
+    "google-workspace"
+    "hermes-memory-configuration-audits"
+    "llm-wiki"
+    "locating-files"
+    "notion"
+    "obsidian"
+    "otto-wiki"
+    "sync-my-githubs"
+  ];
+
+  fallbackSkillNames = allProfileSkillNames;
 
   cheapAux = {
     provider = "openrouter";
     model = "google/gemini-2.5-flash-lite";
   };
+
+  sharedSkillDirs = [ "/home/hermes/.hermes/skills" ];
 
   baseSettings = {
     approvals.mode = "off";
@@ -241,8 +453,9 @@ let
     compression = workerCompression;
     memory = workerMemory;
     skills = {
+      external_dirs = sharedSkillDirs;
       creation_nudge_interval = 0;
-      disabled = disabledDevHeavy;
+      disabled = disableExcept workerSkillNames;
     };
     toolsets = simpleWorkerToolsets;
   };
@@ -272,12 +485,9 @@ let
       memory = specialistMemory;
       compression = specialistCompression;
       skills = {
+        external_dirs = sharedSkillDirs;
         creation_nudge_interval = 50;
-        disabled = [
-          "all-creative"
-          "all-media"
-          "all-social"
-        ] ++ disabledProductivity ++ disabledResearch;
+        disabled = disableExcept codingSkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 180; };
       toolsets = codingToolsets;
@@ -295,18 +505,9 @@ let
       memory = broadMemory;
       compression = specialistCompression;
       skills = {
+        external_dirs = sharedSkillDirs;
         creation_nudge_interval = 50;
-        disabled = [
-          "all-creative"
-          "all-media"
-          "all-social"
-          "all-github"
-          "all-productivity"
-          "all-research"
-          "arxiv"
-          "blogwatcher"
-          "polymarket"
-        ];
+        disabled = disableExcept setupSkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 240; };
       toolsets = setupToolsets;
@@ -324,11 +525,9 @@ let
       memory = specialistMemory;
       compression = specialistCompression;
       skills = {
+        external_dirs = sharedSkillDirs;
         creation_nudge_interval = 50;
-        disabled = disabledMediaCreativeSocial ++ disabledProductivity ++ disabledResearch ++ [
-          "all-autonomous-ai-agents"
-          "all-github"
-        ];
+        disabled = disableExcept plannerSkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 120; };
       toolsets = plannerToolsets;
@@ -346,8 +545,9 @@ let
       memory = specialistMemory;
       compression = specialistCompression;
       skills = {
+        external_dirs = sharedSkillDirs;
         creation_nudge_interval = 50;
-        disabled = disabledMediaCreativeSocial ++ disabledProductivity ++ disabledCoding;
+        disabled = disableExcept researchSkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 120; };
       toolsets = researchToolsets;
@@ -365,8 +565,9 @@ let
       memory = specialistMemory;
       compression = specialistCompression;
       skills = {
+        external_dirs = sharedSkillDirs;
         creation_nudge_interval = 50;
-        disabled = disabledMediaCreativeSocial ++ disabledResearch ++ disabledCoding;
+        disabled = disableExcept productivitySkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 120; };
       toolsets = productivityToolsets;
@@ -384,8 +585,9 @@ let
       compression = broadCompression;
       memory = broadMemory;
       skills = {
+        external_dirs = sharedSkillDirs;
         creation_nudge_interval = 50;
-        disabled = disabledHeavySkills;
+        disabled = disableExcept mediaSkillNames;
       };
       toolsets = mediaToolsets;
     };
@@ -396,11 +598,12 @@ let
         default = "google/gemini-2.5-flash-lite";
       };
       agent.max_turns = 50;
-      compression = broadCompression // { threshold = 0.12; };
+      compression = broadCompression // { threshold = 0.30; };
       memory = broadMemory;
       skills = {
+        external_dirs = sharedSkillDirs;
         creation_nudge_interval = 50;
-        disabled = disabledHeavySkills;
+        disabled = disableExcept knowledgeSkillNames;
       };
       toolsets = knowledgeToolsets;
     };
@@ -420,8 +623,9 @@ let
       compression = broadCompression;
       memory = broadMemory;
       skills = {
+        external_dirs = sharedSkillDirs;
         creation_nudge_interval = 50;
-        disabled = disabledHeavySkills;
+        disabled = disableExcept fallbackSkillNames;
       };
       terminal = baseSettings.terminal // { timeout = 240; };
       toolsets = fallbackFullToolsets;
@@ -714,6 +918,12 @@ in
       install -d -m 0755 -o hermes -g hermes /home/hermes/.hermes/profiles/${lib.escapeShellArg name}
       install -m 0644 -o hermes -g hermes ${profileSoul} /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/SOUL.md
     '') profileSouls)}
+    # Profiles use the shared skill store declared in skills.external_dirs.
+    # Remove stale per-profile skill copies so they cannot shadow updated shared skills.
+    ${lib.concatMapStringsSep "\n" (name: ''
+      rm -rf /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/skills
+    '') ((lib.attrNames profileSettings) ++ retiredProfiles)}
+
     ${lib.concatMapStringsSep "\n" (name: ''
       rm -f /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/config.yaml \
         /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/PROFILE.md \
@@ -721,3 +931,4 @@ in
     '') retiredProfiles}
   '';
 }
+
