@@ -31,7 +31,7 @@ class DefaultSoulPolicyTests(unittest.TestCase):
     def test_default_soul_routes_non_trivial_specialist_work_by_policy(self):
         soul = default_soul_source()
 
-        self.assertIn("Default is a narrow Codex chat/router profile", soul)
+        self.assertIn("Default is a narrow Nous Gemini chat/router profile", soul)
         self.assertIn("Route or delegate non-trivial work by default", soul)
         self.assertIn("route almost anything operational", soul)
 
@@ -65,13 +65,13 @@ class DefaultSoulPolicyTests(unittest.TestCase):
         self.assertIn("Do not invent tools named `profile_router`, `mentor`, or similar", soul)
         self.assertIn("do not silently launch the broad fallback profile", soul)
 
-    def test_default_router_uses_codex_primary_model(self):
+    def test_default_router_uses_nous_gemini_primary_model(self):
         text = HERMES_AGENT_NIX.read_text()
 
-        self.assertIn('provider = "openai-codex";', text)
-        self.assertIn('default = "gpt-5.5";', text)
-        self.assertIn('provider = "openrouter";', text)
-        self.assertIn('model = "google/gemini-2.5-flash-lite";', text)
+        self.assertIn('provider = "nous";', text)
+        self.assertIn('default = "google/gemini-3-flash-preview";', text)
+        self.assertIn('model = "google/gemini-2.5-flash";', text)
+        self.assertNotIn('provider = "openrouter";', text)
 
     def test_default_tool_surface_is_platform_allowlisted(self):
         text = HERMES_AGENT_NIX.read_text()

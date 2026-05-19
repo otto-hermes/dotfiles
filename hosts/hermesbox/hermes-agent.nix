@@ -283,7 +283,7 @@ let
 
     ## Profile routing
 
-    Default is a narrow Codex chat/router profile, not the normal executor for specialist work. It may answer lightweight conversation directly, but it should route almost anything operational.
+    Default is a narrow Nous Gemini chat/router profile, not the normal executor for specialist work. It may answer lightweight conversation directly, but it should route almost anything operational.
 
     Route or delegate non-trivial work by default. This includes local file/log/status checks, repo edits, tests, refactors, GitHub/PR work, NixOS mutations, Hermes/profile/router/toolset/model/provider/service/package changes, media or creative production, knowledge curation, wiki/session/memory work, current-facts research, productivity/document workflows, and any other task clearly owned by a specialist profile.
 
@@ -358,16 +358,12 @@ in
       in {
       model = {
         provider = "nous";
-        default = "openai/gpt-5.5";
+        default = "google/gemini-3-flash-preview";
       };
       fallback_providers = [
         {
-          provider = "openai-codex";
-          model = "gpt-5.5";
-        }
-        {
-          provider = "openrouter";
-          model = "google/gemini-2.5-flash-lite";
+          provider = "nous";
+          model = "google/gemini-2.5-flash";
         }
       ];
       toolsets = defaultRouterToolsets;
@@ -423,20 +419,28 @@ in
       };
       auxiliary = {
         compression = {
-          provider = "openrouter";
-          model = "google/gemini-2.5-flash-lite";
+          provider = "nous";
+          model = "google/gemini-2.5-flash";
         };
         vision = {
-          provider = "openrouter";
-          model = "google/gemini-2.5-flash-lite";
+          provider = "nous";
+          model = "google/gemini-2.5-flash";
         };
         web_extract = {
-          provider = "openrouter";
-          model = "google/gemini-2.5-flash-lite";
+          provider = "nous";
+          model = "google/gemini-2.5-flash";
         };
         title_generation = {
-          provider = "openrouter";
-          model = "google/gemini-2.5-flash-lite";
+          provider = "nous";
+          model = "google/gemini-2.5-flash";
+        };
+        triage_specifier = {
+          provider = "nous";
+          model = "google/gemini-2.5-flash";
+        };
+        kanban_decomposer = {
+          provider = "nous";
+          model = "google/gemini-2.5-flash";
         };
       };
       approvals.mode = "off";

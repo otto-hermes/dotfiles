@@ -18,6 +18,7 @@ let
   simpleWorkerToolsets = [
     "terminal"
     "file"
+    "skills"
   ];
 
   codingToolsets = [
@@ -238,6 +239,10 @@ let
   disableExcept = allowed: lib.subtractLists allowed allProfileSkillNames;
 
   workerSkillNames = [
+    "kanban-orchestrator"
+    "kanban-task-creation"
+    "kanban-task-router"
+    "kanban-worker"
   ];
 
   codingSkillNames = [
@@ -391,20 +396,25 @@ let
 
   fallbackSkillNames = allProfileSkillNames;
 
-  cheapAux = {
-    provider = "openrouter";
-    model = "google/gemini-2.5-flash-lite";
-  };
-
-  premiumNous = {
+  cheapNous = {
     provider = "nous";
-    model = "openai/gpt-5.5";
+    model = "google/gemini-2.5-flash";
   };
 
-  codexFallback = {
+  gemini3FlashNous = {
+    provider = "nous";
+    model = "google/gemini-3-flash-preview";
+  };
+
+  codexSubscription = {
     provider = "openai-codex";
     model = "gpt-5.5";
   };
+
+  codexAuthProfiles = [
+    "setup-worker"
+    "coding"
+  ];
 
   sharedSkillDirs = [ "/home/hermes/.hermes/skills" ];
 
@@ -421,12 +431,14 @@ let
   baseSettings = {
     approvals.mode = "off";
     security.tirith_enabled = false;
-    fallback_providers = [ codexFallback cheapAux ];
+    fallback_providers = [ cheapNous ];
     auxiliary = {
-      compression = cheapAux;
-      title_generation = cheapAux;
-      vision = cheapAux;
-      web_extract = cheapAux;
+      compression = cheapNous;
+      title_generation = cheapNous;
+      vision = cheapNous;
+      web_extract = cheapNous;
+      triage_specifier = cheapNous;
+      kanban_decomposer = cheapNous;
     };
     terminal = {
       backend = "local";
@@ -501,8 +513,8 @@ let
   profileSettings = rec {
     worker = workerBase // {
       model = {
-        provider = "openrouter";
-        default = "google/gemini-2.5-flash-lite";
+        provider = cheapNous.provider;
+        default = cheapNous.model;
       };
       agent = {
         max_turns = 12;
@@ -513,12 +525,12 @@ let
 
     coding = baseSettings // {
       model = {
-        provider = premiumNous.provider;
-        default = premiumNous.model;
+        provider = codexSubscription.provider;
+        default = codexSubscription.model;
       };
       agent = {
         max_turns = 55;
-        reasoning_effort = "medium";
+        reasoning_effort = "high";
       };
       memory = highUseCodexMemory;
       compression = highUseCodexCompression;
@@ -532,12 +544,12 @@ let
 
     setup-worker = baseSettings // {
       model = {
-        provider = premiumNous.provider;
-        default = premiumNous.model;
+        provider = codexSubscription.provider;
+        default = codexSubscription.model;
       };
       agent = {
         max_turns = 60;
-        reasoning_effort = "medium";
+        reasoning_effort = "high";
       };
       memory = highUseCodexMemory;
       compression = highUseCodexCompression;
@@ -551,8 +563,8 @@ let
 
     planner = baseSettings // {
       model = {
-        provider = premiumNous.provider;
-        default = premiumNous.model;
+        provider = cheapNous.provider;
+        default = cheapNous.model;
       };
       agent = {
         max_turns = 35;
@@ -570,8 +582,8 @@ let
 
     research-worker = baseSettings // {
       model = {
-        provider = "openrouter";
-        default = "deepseek/deepseek-chat-v3-0324";
+        provider = cheapNous.provider;
+        default = cheapNous.model;
       };
       agent = {
         max_turns = 45;
@@ -589,8 +601,8 @@ let
 
     productivity-worker = baseSettings // {
       model = {
-        provider = "openrouter";
-        default = "deepseek/deepseek-chat-v3-0324";
+        provider = gemini3FlashNous.provider;
+        default = gemini3FlashNous.model;
       };
       agent = {
         max_turns = 45;
@@ -608,8 +620,8 @@ let
 
     media-worker = baseSettings // {
       model = {
-        provider = premiumNous.provider;
-        default = premiumNous.model;
+        provider = codexSubscription.provider;
+        default = codexSubscription.model;
       };
       agent = {
         max_turns = 80;
@@ -626,8 +638,8 @@ let
 
     knowledge-curator = baseSettings // {
       model = {
-        provider = "openrouter";
-        default = "google/gemini-2.5-flash-lite";
+        provider = cheapNous.provider;
+        default = cheapNous.model;
       };
       agent.max_turns = 50;
       compression = broadCompression // { threshold = 0.30; };
@@ -644,8 +656,8 @@ let
 
     fallback-full = baseSettings // {
       model = {
-        provider = premiumNous.provider;
-        default = premiumNous.model;
+        provider = gemini3FlashNous.provider;
+        default = gemini3FlashNous.model;
       };
       agent = {
         max_turns = 90;
@@ -960,6 +972,33 @@ in
       ln -sfn ${hermesRoutingPlugin} /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/plugins/nix-managed-hermes-routing-plugin
       chown -h hermes:hermes /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/plugins/nix-managed-hermes-routing-plugin
     '') (lib.attrNames profileSettings)}
+
+    # Profile sessions run with HERMES_HOME=/home/hermes/.hermes/profiles/<name>.
+    # Mirror only Codex subscription auth from the root auth store into the
+    # Codex-backed worker profile homes so auth does not depend on OpenRouter
+    # credentials or on implicit cross-HERMES_HOME fallback behavior.
+    if [ -r /home/hermes/.hermes/auth.json ]; then
+      codex_auth_tmp="$(${pkgs.coreutils}/bin/mktemp)"
+      if ${pkgs.jq}/bin/jq -e '
+        def providers: (.providers // {});
+        def pool: (.credential_pool // {});
+        def has_codex_provider: (providers | has("openai-codex"));
+        def codex_pool: (pool["openai-codex"] // []);
+        select(has_codex_provider or ((codex_pool | length) > 0))
+        | {
+            version: (.version // 2),
+            active_provider: "openai-codex",
+            providers: (if has_codex_provider then {"openai-codex": providers["openai-codex"]} else {} end),
+            credential_pool: {"openai-codex": codex_pool}
+          }
+      ' /home/hermes/.hermes/auth.json > "$codex_auth_tmp"; then
+        ${lib.concatMapStringsSep "\n" (name: ''
+          install -d -m 0700 -o hermes -g hermes /home/hermes/.hermes/profiles/${lib.escapeShellArg name}
+          install -m 0600 -o hermes -g hermes "$codex_auth_tmp" /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/auth.json
+        '') codexAuthProfiles}
+      fi
+      rm -f "$codex_auth_tmp"
+    fi
 
     ${lib.concatMapStringsSep "\n" (name: ''
       rm -f /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/config.yaml \
