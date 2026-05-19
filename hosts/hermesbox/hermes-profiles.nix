@@ -411,11 +411,6 @@ let
     model = "gpt-5.5";
   };
 
-  codexAuthProfiles = [
-    "setup-worker"
-    "coding"
-  ];
-
   sharedSkillDirs = [ "/home/hermes/.hermes/skills" ];
 
   profileToolSettings = toolsets:
@@ -972,33 +967,6 @@ in
       ln -sfn ${hermesRoutingPlugin} /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/plugins/nix-managed-hermes-routing-plugin
       chown -h hermes:hermes /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/plugins/nix-managed-hermes-routing-plugin
     '') (lib.attrNames profileSettings)}
-
-    # Profile sessions run with HERMES_HOME=/home/hermes/.hermes/profiles/<name>.
-    # Mirror only Codex subscription auth from the root auth store into the
-    # Codex-backed worker profile homes so auth does not depend on OpenRouter
-    # credentials or on implicit cross-HERMES_HOME fallback behavior.
-    if [ -r /home/hermes/.hermes/auth.json ]; then
-      codex_auth_tmp="$(${pkgs.coreutils}/bin/mktemp)"
-      if ${pkgs.jq}/bin/jq -e '
-        def providers: (.providers // {});
-        def pool: (.credential_pool // {});
-        def has_codex_provider: (providers | has("openai-codex"));
-        def codex_pool: (pool["openai-codex"] // []);
-        select(has_codex_provider or ((codex_pool | length) > 0))
-        | {
-            version: (.version // 2),
-            active_provider: "openai-codex",
-            providers: (if has_codex_provider then {"openai-codex": providers["openai-codex"]} else {} end),
-            credential_pool: {"openai-codex": codex_pool}
-          }
-      ' /home/hermes/.hermes/auth.json > "$codex_auth_tmp"; then
-        ${lib.concatMapStringsSep "\n" (name: ''
-          install -d -m 0700 -o hermes -g hermes /home/hermes/.hermes/profiles/${lib.escapeShellArg name}
-          install -m 0600 -o hermes -g hermes "$codex_auth_tmp" /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/auth.json
-        '') codexAuthProfiles}
-      fi
-      rm -f "$codex_auth_tmp"
-    fi
 
     ${lib.concatMapStringsSep "\n" (name: ''
       rm -f /home/hermes/.hermes/profiles/${lib.escapeShellArg name}/config.yaml \
