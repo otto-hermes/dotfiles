@@ -4,7 +4,7 @@ Date: 2026-05-18
 
 ## Current policy
 
-The default Hermes profile is a narrow Codex chat/router profile. It uses `openai-codex` with `gpt-5.5` as the primary router model, low reasoning, a short turn budget, reduced memory limits, and only these default toolsets. `openrouter` with `google/gemini-2.5-flash-lite` remains as a cheap fallback provider so routing can still answer if Codex is unavailable or exhausted:
+The default Hermes profile is a narrow Nous-backed chat/router profile. It uses `nous` with `google/gemini-3-flash-preview` as the primary router model, medium reasoning, a short turn budget, reduced memory limits, and only these default toolsets. `nous` with `google/gemini-2.5-flash` remains as a cheap fallback provider so routing can still answer if the primary Gemini route is unavailable or exhausted:
 
 - `routing`
 - `clarify`
@@ -42,7 +42,7 @@ Best read:
 - It helps when default stays small and narrow, and specialist profiles have stable static prefixes.
 - It hurts when default itself is broad/expensive, because a delegated request costs router inference plus specialist inference. Keeping Codex as router makes the narrow tool surface more important.
 - It can be cold on the first call to a specialist after its prompt/tool/schema prefix changes.
-- It is worse for OpenRouter models whose provider stickiness identifies conversations partly from the first system/developer and first user messages; changing the first user task can reduce provider-local stickiness for some providers.
+- It can be worse for providers whose cache stickiness identifies conversations partly from the first system/developer and first user messages; changing the first user task can reduce provider-local stickiness for some providers.
 - It is still good for OpenAI/Codex-style prefix caching when the static instructions/tools are identical and dynamic task text is at the end.
 
 Practical rule: keep each profile's static prompt and tool schema stable, keep dynamic request text late, avoid broad fallback auto-launch, and avoid changing old conversation/tool messages after insertion.
@@ -96,7 +96,7 @@ Skill creation nudges are disabled for worker profiles. The skills tool remains 
 - Hermes token overhead issue: https://github.com/NousResearch/hermes-agent/issues/4379
 - Hermes cache-friendly trimming issue: https://github.com/NousResearch/hermes-agent/issues/415
 - OpenAI prompt caching docs: https://developers.openai.com/api/docs/guides/prompt-caching
-- OpenRouter prompt caching docs: https://openrouter.ai/docs/guides/best-practices/prompt-caching
+
 
 ## Follow-up todo
 

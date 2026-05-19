@@ -69,7 +69,7 @@ HOME=/home/hermes git -C /home/hermes/hermes-brain-sync ls-files \
 
 # Encrypted secrets must look encrypted, not plaintext.
 rg 'ENC\[' /home/hermes/dotfiles/hosts/*/secrets.yaml
-rg 'AGE-SECRET-KEY|OPENROUTER_API_KEY=|TELEGRAM_BOT_TOKEN=|GMAIL_APP_PASSWORD=' /home/hermes/dotfiles || true
+rg 'AGE-SECRET-KEY|NOUS_API_KEY=|TELEGRAM_BOT_TOKEN=|GMAIL_APP_PASSWORD=' /home/hermes/dotfiles || true
 ```
 
 Expected: the first command lists soul/memory files, vector/runtime checks produce no tracked files, `secrets.yaml` contains `ENC[` ciphertext, and no plaintext secret assignments appear in dotfiles.

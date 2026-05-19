@@ -371,7 +371,7 @@ in
       known_plugin_toolsets = lib.genAttrs routerPlatforms (_: [ "routing" ]);
       agent = {
         max_turns = 20;
-        reasoning_effort = "low";
+        reasoning_effort = "medium";
       };
       skills = {
         creation_nudge_interval = 0;

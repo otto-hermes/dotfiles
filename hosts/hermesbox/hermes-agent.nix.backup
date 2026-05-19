@@ -19,8 +19,8 @@
 
     settings = {
       model = {
-        provider = "openrouter";
-        default = "nvidia/nemotron-3-super-120b-a12b:free";
+        provider = "nous";
+        default = "google/gemini-3-flash-preview";
       };
       toolsets = [ "all" ];
       terminal = {

@@ -406,6 +406,10 @@ let
     model = "google/gemini-3-flash-preview";
   };
 
+  gemini3FlashFallback = gemini3FlashNous // {
+    reasoning_effort = "medium";
+  };
+
   codexSubscription = {
     provider = "openai-codex";
     model = "gpt-5.5";
@@ -523,9 +527,11 @@ let
         provider = codexSubscription.provider;
         default = codexSubscription.model;
       };
+      fallback_model = gemini3FlashFallback;
+      fallback_providers = [ gemini3FlashFallback ];
       agent = {
         max_turns = 55;
-        reasoning_effort = "high";
+        reasoning_effort = "medium";
       };
       memory = highUseCodexMemory;
       compression = highUseCodexCompression;
@@ -542,9 +548,11 @@ let
         provider = codexSubscription.provider;
         default = codexSubscription.model;
       };
+      fallback_model = gemini3FlashFallback;
+      fallback_providers = [ gemini3FlashFallback ];
       agent = {
         max_turns = 60;
-        reasoning_effort = "high";
+        reasoning_effort = "medium";
       };
       memory = highUseCodexMemory;
       compression = highUseCodexCompression;
@@ -599,6 +607,8 @@ let
         provider = gemini3FlashNous.provider;
         default = gemini3FlashNous.model;
       };
+      fallback_model = gemini3FlashFallback;
+      fallback_providers = [ gemini3FlashFallback ];
       agent = {
         max_turns = 45;
         reasoning_effort = "medium";
@@ -654,6 +664,8 @@ let
         provider = gemini3FlashNous.provider;
         default = gemini3FlashNous.model;
       };
+      fallback_model = gemini3FlashFallback;
+      fallback_providers = [ gemini3FlashFallback ];
       agent = {
         max_turns = 90;
         reasoning_effort = "medium";

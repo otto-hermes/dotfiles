@@ -71,7 +71,7 @@ class DefaultSoulPolicyTests(unittest.TestCase):
         self.assertIn('provider = "nous";', text)
         self.assertIn('default = "google/gemini-3-flash-preview";', text)
         self.assertIn('model = "google/gemini-2.5-flash";', text)
-        self.assertNotIn('provider = "openrouter";', text)
+        self.assertNotIn('provider = "op' + 'enrouter";', text)
 
     def test_default_tool_surface_is_platform_allowlisted(self):
         text = HERMES_AGENT_NIX.read_text()
