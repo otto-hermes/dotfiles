@@ -533,6 +533,11 @@ in
       ExecStart = hermesDashboardTailscale;
       Restart = "on-failure";
       RestartSec = "5s";
+      # Hermes dashboard sometimes ignores SIGTERM while serving TUI/web sessions;
+      # the default 90s stop timeout blocks nixos-rebuild switch and can leave the
+      # transient switch-to-configuration unit loaded long enough to make a second
+      # rebuild fail. Bound shutdown latency during declarative switches.
+      TimeoutStopSec = "15s";
       # Dashboard-spawned TUI sessions dispatch kanban workers. Some setup-worker
       # tasks are intentionally allowed to sudo for host rebuilds; no_new_privs is
       # sticky across child processes and makes sudo elevation impossible.
