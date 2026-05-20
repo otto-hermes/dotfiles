@@ -1,7 +1,0 @@
-name: routing
-version: "0.1.0"
-description: First-class route_task tool for selecting, planning, and launching Hermes specialist profiles.
-author: Otto
-kind: standalone
-provides_tools:
-  - route_task

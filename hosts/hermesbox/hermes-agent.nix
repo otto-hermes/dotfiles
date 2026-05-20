@@ -85,9 +85,6 @@ let
       hash = "sha256-hfWetAUBmyXeB3UIPMLqul5KolXlv5dIUl4TonSWSiA=";
     };
 
-    # Upstream ships pnpm-lock.yaml only. buildNpmPackage needs a package-lock;
-    # this lock was generated from the selected trial checkout with npm using
-    # the repo's legacy peer-dependency mode, then committed here as build input.
     postPatch = ''
       cp ${./hermes-workspace/package-lock.json} package-lock.json
     '';
@@ -100,9 +97,6 @@ let
     PUPPETEER_SKIP_DOWNLOAD = "1";
     npmBuildScript = "build";
 
-    # buildNpmPackage installs from npm's packed file set; upstream's package
-    # metadata does not include the TanStack Start production build output.
-    # Copy it explicitly so server-entry.js can import dist/server/server.js.
     postInstall = ''
       cp -r dist "$out/lib/node_modules/hermes-workspace/"
     '';
@@ -196,18 +190,6 @@ let
     exec ${pkgs.nodejs_22}/bin/npx -y hyperframes@0.4.45 "$@"
   '';
 
-  hermesRoutingPlugin = pkgs.stdenvNoCC.mkDerivation {
-    pname = "hermes-routing-plugin";
-    version = "0.1.0";
-    src = ./plugins/routing;
-    installPhase = ''
-      runHook preInstall
-      mkdir -p $out
-      cp -r . $out/
-      runHook postInstall
-    '';
-  };
-
   defaultSoul = pkgs.writeText "hermes-default-SOUL.md" ''
     # SOUL.md
 
@@ -235,7 +217,11 @@ let
 
     Avoid drift. Do not let the machine become a haunted snowflake. No permanent imperative NixOS changes. If an imperative command is useful for diagnosis, treat it as temporary, say so, and convert the final result into declarative config, repo-managed scripts, skills, or docs.
 
-    On this VM, durable system and app config fixes belong in `/home/hermes/dotfiles`, not direct edits under `/etc` or generated config directories. Persistent Otto brain docs belong under `/home/hermes/.hermes` (`HERMES_HOME`); old `/var/lib/hermes/.hermes` paths are historical only.
+    On this VM, two primary paths exist:
+    - `/home/hermes/.hermes` (`HERMES_HOME`): Canonical location for Otto's persistent state, brain, configs, and skills.
+    - `/home/hermes/workspace`: Designated working directory for general task execution, repository checkouts, and sandbox work.
+    
+    Durable system and app config fixes belong in `/home/hermes/dotfiles`, not direct edits under `/etc` or generated config directories. Persistent Otto brain docs belong under `/home/hermes/.hermes`; old `/var/lib/hermes/.hermes` paths are historical only.
 
     Hermes Agent itself is included in that rule. Before changing Hermes models, providers, toolsets, profiles, gateway config, services, packages, or durable app settings, first inspect `/home/hermes/dotfiles` and patch the Nix-managed source of truth. Direct `hermes config`, `hermes profile`, or edits under `~/.hermes/*/config.yaml` are temporary diagnostics only; convert them to Nix and run `sudo nixos-rebuild switch --flake /home/hermes/dotfiles#hermesbox` before calling the task done.
 
@@ -280,18 +266,6 @@ let
     - what is declarative and what is still temporary.
 
     Docs should be clear, not bloated. A few good Markdown files are enough when routed through `MAP.md`.
-
-    ## Profile routing
-
-    Default is a narrow Nous Gemini chat/router profile, not the normal executor for specialist work. It may answer lightweight conversation directly, but it should route almost anything operational.
-
-    Route or delegate non-trivial work by default. This includes local file/log/status checks, repo edits, tests, refactors, GitHub/PR work, NixOS mutations, Hermes/profile/router/toolset/model/provider/service/package changes, media or creative production, knowledge curation, wiki/session/memory work, current-facts research, productivity/document workflows, and any other task clearly owned by a specialist profile.
-
-    Prefer the first-class `route_task` tool. Use `action=choose` to classify, `action=plan` for compound or conditional work, and `action=launch` to run a specialist. Use background launch for long-running specialist work. Do not invent tools named `profile_router`, `mentor`, or similar; if `route_task` is unavailable, say that the routing tool is unavailable and give the operator command fallback.
-
-    Operator/debug fallback only: `/home/hermes/dotfiles/hosts/hermesbox/hermes-profiles.nix` generates `hermes-profile-router choose --json "<request>"`, `hermes-profile-router plan --json "<request>"`, `hermes-profile-router launch "<request>"`, and `hermes-profile-router execute-plan "<request>"`.
-
-    If routing confidence is low, do not silently launch the broad fallback profile. Ask one concise clarification, or use `route_task` with `action=plan`. Routing metadata is generated declaratively from `/home/hermes/dotfiles/hosts/hermesbox/hermes-profiles.nix`; do not edit generated `PROFILE.md` files directly.
   '';
 in
 {
@@ -311,10 +285,6 @@ in
     workingDirectory = "/home/hermes/workspace";
     extraDependencyGroups = [ "messaging" ];
 
-    # Transition-safe secret loading: keep the legacy operator-managed env file
-    # as fallback, then let sops-nix's generated runtime env override it when
-    # available. Note: this Hermes module concatenates these files during
-    # activation, so do not use systemd's optional '-' EnvironmentFile marker.
     environmentFiles = [
       "/home/hermes/.keys/hermes.env"
       config.sops.secrets."hermes/env".path
@@ -325,7 +295,7 @@ in
 
     settings =
       let
-        routerPlatforms = [
+        platforms = [
           "cli"
           "telegram"
           "discord"
@@ -348,13 +318,37 @@ in
           "api_server"
           "cron"
         ];
-        defaultRouterToolsets = [
-          "routing"
+        defaultToolsets = [
+          "web"
+          "browser"
+          "terminal"
+          "file"
+          "code_execution"
+          "skills"
           "clarify"
           "todo"
           "memory"
+          "session_search"
+          "delegation"
+          "cronjob"
+          "messaging"
+          "vision"
+          "image_gen"
+          "video"
+          "video_gen"
+          "x_search"
+          "moa"
+          "tts"
+          "homeassistant"
+          "spotify"
+          "yuanbao"
+          "computer_use"
+          "file_io"
+          "shell"
+          "execute_command"
+          "patch"
         ];
-        platformRouterToolsets = defaultRouterToolsets ++ [ "no_mcp" ];
+        platformToolsets = defaultToolsets ++ [ "no_mcp" ];
       in {
       model = {
         provider = "nous";
@@ -366,56 +360,34 @@ in
           model = "google/gemini-2.5-flash";
         }
       ];
-      toolsets = defaultRouterToolsets;
-      platform_toolsets = lib.genAttrs routerPlatforms (_: platformRouterToolsets);
-      known_plugin_toolsets = lib.genAttrs routerPlatforms (_: [ "routing" ]);
+      toolsets = defaultToolsets;
+      platform_toolsets = lib.genAttrs platforms (_: platformToolsets);
       agent = {
-        max_turns = 20;
+        max_turns = 90;
         reasoning_effort = "medium";
       };
       skills = {
+        external_dirs = [ "/home/hermes/.hermes/skills" ];
         creation_nudge_interval = 0;
-        disabled = [
-          "audiocraft"
-          "axolotl"
-          "comfyui"
-          "dspy"
-          "godmode"
-          "huggingface-hub"
-          "jupyter-live-kernel"
-          "llama-cpp"
-          "lm-evaluation-harness"
-          "minecraft-modpack-server"
-          "obliteratus"
-          "openhue"
-          "outlines"
-          "pokemon-player"
-          "segment-anything"
-          "touchdesigner-mcp"
-          "trl-fine-tuning"
-          "unsloth"
-          "vllm"
-          "weights-and-biases"
-          "yuanbao"
-        ];
+        disabled = [];
       };
       terminal = {
         backend = "local";
         cwd = "/home/hermes";
-        timeout = 180;
+        timeout = 240;
       };
       memory = {
-        nudge_interval = 100;
+        nudge_interval = 50;
         memory_enabled = true;
         user_profile_enabled = true;
-        memory_char_limit = 3200;
-        user_char_limit = 2200;
+        memory_char_limit = 6600;
+        user_char_limit = 4125;
       };
       compression = {
         enabled = true;
-        threshold = 0.25;
-        target_ratio = 0.15;
-        protect_last_n = 4;
+        threshold = 0.40;
+        target_ratio = 0.20;
+        protect_last_n = 8;
       };
       auxiliary = {
         compression = {
@@ -446,7 +418,6 @@ in
       approvals.mode = "off";
       security.tirith_enabled = false;
       unauthorized_dm_behavior = "pair";
-      plugins.enabled = [ "routing" ];
 
       telegram = {
       };
@@ -455,10 +426,6 @@ in
       };
       platforms.whatsapp.extra.bridge_script = "/home/hermes/.hermes/platforms/whatsapp/bridge/bridge.js";
     };
-
-    extraPlugins = [
-      hermesRoutingPlugin
-    ];
 
     extraPackages = with pkgs; [
       curl
@@ -479,7 +446,6 @@ in
 
   systemd.services.hermes-agent = {
     serviceConfig = {
-      # Allow controlled privilege escalation from agent sessions (optional/risky).
       NoNewPrivileges = lib.mkForce false;
       TimeoutStopSec = "240s";
       UnsetEnvironment = [ "MESSAGING_CWD" ];
@@ -493,18 +459,8 @@ in
       HYPERFRAMES_BROWSER_PATH = "${pkgs.chromium}/bin/chromium";
       PRODUCER_HEADLESS_SHELL_PATH = "${pkgs.chromium}/bin/chromium";
       PRODUCER_FORCE_SCREENSHOT = "true";
-
-      # Force non-interactive agent tool execution through a POSIX-compatible
-      # shell. Fish remains installed for explicit human use, but automation and
-      # service-launched agent sessions should not inherit fish semantics.
       SHELL = lib.mkForce "${pkgs.bashInteractive}/bin/bash";
-
-      # Keep WhatsApp disabled for now (override env file).
       WHATSAPP_ENABLED = lib.mkForce "false";
-
-      # Keep the Hermes OpenAI-compatible API loopback-only for local companion
-      # services like hermes-workspace. It should not be reachable directly from
-      # Tailscale; the password-protected workspace UI is the remote surface.
       API_SERVER_ENABLED = lib.mkForce "true";
       API_SERVER_HOST = lib.mkForce "127.0.0.1";
       API_SERVER_PORT = lib.mkForce "8642";
@@ -521,8 +477,6 @@ in
       HOME = "/home/hermes";
       HERMES_HOME = "/home/hermes/.hermes";
       HERMES_DASHBOARD_TUI = "1";
-      # Match hermes-agent.service: dashboard-spawned TUI/chat sessions should
-      # use bash/POSIX semantics for programmatic command execution.
       SHELL = "${pkgs.bashInteractive}/bin/bash";
     };
     serviceConfig = {
@@ -533,14 +487,7 @@ in
       ExecStart = hermesDashboardTailscale;
       Restart = "on-failure";
       RestartSec = "5s";
-      # Hermes dashboard sometimes ignores SIGTERM while serving TUI/web sessions;
-      # the default 90s stop timeout blocks nixos-rebuild switch and can leave the
-      # transient switch-to-configuration unit loaded long enough to make a second
-      # rebuild fail. Bound shutdown latency during declarative switches.
       TimeoutStopSec = "15s";
-      # Dashboard-spawned TUI sessions dispatch kanban workers. Some setup-worker
-      # tasks are intentionally allowed to sudo for host rebuilds; no_new_privs is
-      # sticky across child processes and makes sudo elevation impossible.
       NoNewPrivileges = lib.mkForce false;
       PrivateTmp = true;
       ProtectSystem = "strict";
@@ -653,8 +600,6 @@ EOF
     chmod 0755 /home/hermes/.hermes/scripts/no-agent-health-check.py
     chmod 0755 /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
   '';
-
-
 
   systemd.services.hermes-daily-nixos-rebuild = {
     description = "Daily NixOS flake update, build, and switch triggered by Hermes cron";
