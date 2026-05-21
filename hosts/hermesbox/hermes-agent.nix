@@ -76,20 +76,18 @@ let
 
   hermesWorkspace = pkgs.buildNpmPackage rec {
     pname = "hermes-workspace";
-    version = "2.3.0-e1470084";
-
-    src = pkgs.fetchFromGitHub {
+    version = "2.3.0-4f75b583"; {
       owner = "outsourc-e";
       repo = "hermes-workspace";
-      rev = "e1470084d29eeeba1921752f36d1228f3afc52f1";
-      hash = "sha256-hfWetAUBmyXeB3UIPMLqul5KolXlv5dIUl4TonSWSiA=";
+      rev = "4f75b5835cc2f275e36d8adc28deb558844bceb5";
+      hash = "sha256-Cg/X0JM3hvbzx0tZgzpObrEzLo+hOW8bEwuXvnTgYEQ=";
     };
 
     postPatch = ''
       cp ${./hermes-workspace/package-lock.json} package-lock.json
     '';
 
-    npmDepsHash = "sha256-eMUhJBgTgcudjf3sMTzvv/bdwzmhIYYHSt/AIBZwN3c=";
+    npmDepsHash = "sha256-Kx8dxSXAJe5Az0LDcUKgFmMXVtNh3el2lUBFJPM/zIc=";
     npmFlags = [ "--legacy-peer-deps" ];
     NODE_OPTIONS = "--max-old-space-size=2048";
     ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
