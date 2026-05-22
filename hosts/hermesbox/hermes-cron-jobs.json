@@ -41,6 +41,16 @@
       "enabled_toolsets": []
     },
     {
+      "id": "a60b101a7751",
+      "name": "otto-disk-cleanup",
+      "schedule": "0 12 */3 * *",
+      "no_agent": true,
+      "script": "disk-cleanup.py",
+      "deliver": "telegram",
+      "prompt": "No-agent disk cleanup: run disk-cleanup.py and deliver stdout verbatim. The script is quiet when clean and prints freed space when it does work.",
+      "enabled_toolsets": []
+    },
+    {
       "id": "b1e49240f54b",
       "name": "wiki-weekly-maintenance-lint",
       "schedule": "0 9 * * 1",
