@@ -8,9 +8,9 @@ import subprocess
 import sys
 
 UNIT = "hermes-daily-nixos-rebuild.service"
-SUDO = "/run/current-system/sw/bin/sudo"
-SYSTEMCTL = "/run/current-system/sw/bin/systemctl"
-JOURNALCTL = "/run/current-system/sw/bin/journalctl"
+SUDO = "sudo"
+SYSTEMCTL = "systemctl"
+JOURNALCTL = "journalctl"
 
 
 def run(cmd: list[str], timeout: int | None = None) -> subprocess.CompletedProcess[str]:
