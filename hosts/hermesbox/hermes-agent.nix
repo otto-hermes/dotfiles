@@ -58,6 +58,7 @@ let
   '';
 
   contextUsagePython = pkgs.python3.withPackages (ps: [ ps.tiktoken ]);
+  promptBudgetPython = pkgs.python312.withPackages (ps: [ ps.tiktoken ]);
 
   hermesContextUsageDashboard = pkgs.writeShellScript "hermes-context-usage-dashboard" ''
     set -euo pipefail
@@ -74,9 +75,23 @@ let
     exit 1
   '';
 
+  hermesPromptBudget = pkgs.writeShellScriptBin "hermes-prompt-budget" ''
+    set -euo pipefail
+    export HOME="''${HOME:-/home/hermes}"
+    export HERMES_HOME="''${HERMES_HOME:-/home/hermes/.hermes}"
+
+    hermes_site="$(${pkgs.bash}/bin/bash -c '/run/current-system/sw/bin/hermes --version' | ${pkgs.gnused}/bin/sed -n 's/^Project:[[:space:]]*//p')"
+    if [ -n "$hermes_site" ]; then
+      export PYTHONPATH="$hermes_site''${PYTHONPATH:+:$PYTHONPATH}"
+    fi
+
+    exec ${promptBudgetPython}/bin/python3 /home/hermes/dotfiles/hosts/hermesbox/scripts/hermes-prompt-budget.py "$@"
+  '';
+
   hermesWorkspace = pkgs.buildNpmPackage rec {
     pname = "hermes-workspace";
-    version = "2.3.0-4f75b583"; {
+    version = "2.3.0-4f75b583";
+    src = pkgs.fetchFromGitHub {
       owner = "outsourc-e";
       repo = "hermes-workspace";
       rev = "4f75b5835cc2f275e36d8adc28deb558844bceb5";
@@ -350,7 +365,7 @@ in
       in {
       model = {
         provider = "nous";
-        default = "google/gemini-3-flash-preview";
+        default = "deepseek/deepseek-v4-flash";
       };
       fallback_providers = [
         {
@@ -432,6 +447,7 @@ in
       ffmpeg
       git
       himalaya
+      hermesPromptBudget
       hyperframes
       jq
       nodejs_22
