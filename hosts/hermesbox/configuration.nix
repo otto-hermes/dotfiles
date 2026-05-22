@@ -43,6 +43,18 @@ in
     "flakes"
   ];
 
+  nix.gc = {
+    automatic = true;
+    dates = "03:15";
+    options = "--delete-older-than 4d";
+  };
+
+  nix.settings.auto-optimise-store = true;
+  nix.settings.min-free = 5 * 1024 * 1024 * 1024;
+  nix.settings.max-free = 10 * 1024 * 1024 * 1024;
+
+  boot.loader.grub.configurationLimit = 5;
+
   programs.fish = {
     enable = true;
     interactiveShellInit = "set fish_greeting";
