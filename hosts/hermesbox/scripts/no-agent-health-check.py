@@ -25,6 +25,12 @@ def run(cmd: list[str], timeout: int = 10) -> tuple[int, str, str]:
         return 127, "", str(exc)
 
 
+# Full paths for cron minimal-PATH environment where /run/current-system/sw/bin
+# is not in PATH.
+SYSTEMCTL = "/run/current-system/sw/bin/systemctl"
+GIT = "/run/current-system/sw/bin/git"
+
+
 # Disk/free-space summary.
 for path_s in ["/", "/home", "/home/hermes"]:
     path = Path(path_s)
@@ -40,7 +46,7 @@ for path_s in ["/", "/home", "/home/hermes"]:
 
 # Gateway/systemd status; no raw journal/status dumps.
 for svc in ["hermes-agent.service", "hermes-dashboard.service"]:
-    rc, out, err = run(["systemctl", "is-active", svc], timeout=8)
+    rc, out, err = run([SYSTEMCTL, "is-active", svc], timeout=8)
     state = out or err or f"exit {rc}"
     notes.append(f"systemd {svc}: {state}")
     if rc != 0 or state != "active":
@@ -68,7 +74,7 @@ for repo_s in ["/home/hermes/dotfiles", "/home/hermes/hermes-brain-sync"]:
     if not (repo / ".git").exists():
         alerts.append(f"git repo missing: {repo_s}")
         continue
-    rc, out, err = run(["git", "-C", repo_s, "status", "--short"], timeout=10)
+    rc, out, err = run([GIT, "-C", repo_s, "status", "--short"], timeout=10)
     if rc != 0:
         alerts.append(f"git status failed for {repo_s}: {err or out or rc}")
         continue

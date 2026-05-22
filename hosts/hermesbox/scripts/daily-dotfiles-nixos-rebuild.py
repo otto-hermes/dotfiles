@@ -8,9 +8,14 @@ import subprocess
 import sys
 
 UNIT = "hermes-daily-nixos-rebuild.service"
-SUDO = "sudo"
-SYSTEMCTL = "systemctl"
-JOURNALCTL = "journalctl"
+
+# Hardcode full paths: no_agent scripts run in the cronsync service's minimal
+# PATH which doesn't include /run/current-system/sw/bin or /run/wrappers/bin.
+# On NixOS, sudo must go through the setuid wrapper at /run/wrappers/bin/sudo;
+# the symlink at /run/current-system/sw/bin/sudo lacks the setuid bit.
+SUDO = "/run/wrappers/bin/sudo"
+SYSTEMCTL = "/run/current-system/sw/bin/systemctl"
+JOURNALCTL = "/run/current-system/sw/bin/journalctl"
 
 
 def run(cmd: list[str], timeout: int | None = None) -> subprocess.CompletedProcess[str]:

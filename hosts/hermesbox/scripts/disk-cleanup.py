@@ -17,16 +17,16 @@ SYSTEM_PROFILE = "/nix/var/nix/profiles/system"
 KEEP_LAST = 4  # keep current + 3 previous
 
 
-def run(cmd: list[str], timeout: int = 600) -> subprocess.CompletedProcess:
+def run(cmd: list[str], timeout: int = 600, env: dict | None = None) -> subprocess.CompletedProcess:
     return subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout, env=env
     )
 
 
-def clean_nix_generations() -> int:
+def clean_nix_generations(env: dict) -> int:
     """Delete all system generations except the last KEEP_LAST."""
     gen_list = run(
-        [SUDO, "nix-env", "-p", SYSTEM_PROFILE, "--list-generations"]
+        [SUDO, "nix-env", "-p", SYSTEM_PROFILE, "--list-generations"], env=env
     )
     if gen_list.returncode != 0:
         print(f"nix-env list-generations failed: {gen_list.stderr.strip()}")
@@ -52,12 +52,12 @@ def clean_nix_generations() -> int:
     return len(to_delete)
 
 
-def clean_nix_gc() -> str | None:
+def clean_nix_gc(env: dict) -> str | None:
     """Run nix garbage collector. Returns freed space or None on failure."""
     # remount rw if needed
     run([SUDO, "mount", "-o", "remount,rw", "/"], timeout=10)
 
-    res = run([SUDO, "nix-collect-garbage", "-d"], timeout=1800)
+    res = run([SUDO, "nix-collect-garbage", "-d"], timeout=1800, env=env)
     if res.returncode != 0:
         print(f"nix-collect-garbage failed: {res.stderr.strip()}")
         return None
@@ -95,8 +95,11 @@ def main() -> int:
     total_mb = 0
 
     # 1. Nix cleanup
-    del_gens = clean_nix_generations()
-    gc_result = clean_nix_gc()
+    nix_env = os.environ.copy()
+    nix_env["PATH"] = "/run/wrappers/bin:/nix/var/nix/profiles/default/bin:" + nix_env.get("PATH", "")
+
+    del_gens = clean_nix_generations(nix_env)
+    gc_result = clean_nix_gc(nix_env)
 
     # 2. Package manager caches
     total_mb += clean_dir(HOME / ".npm" / "_cacache", "npm cache")
