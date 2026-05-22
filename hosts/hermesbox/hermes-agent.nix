@@ -95,7 +95,7 @@ let
       owner = "outsourc-e";
       repo = "hermes-workspace";
       rev = "4f75b5835cc2f275e36d8adc28deb558844bceb5";
-      hash = "0i30w1sbx5qb2cdnyfd1iwp37cbf9qx86nabqzrzd1ipjg8df3qa";
+      hash = "sha256-Cg/X0JM3hvbzx0tZgzpObrEzLo+hOW8bEwuXvnTgYEQ=";
     };
 
     postPatch = ''

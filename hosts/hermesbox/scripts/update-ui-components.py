@@ -69,10 +69,11 @@ def get_git_rev_hash(repo_url: str, branch: str = "main") -> tuple[str, str]:
         prefetch_url = f"{_NIX_PROFILE}/nix-prefetch-url"
         archive_url = f"{repo_url.rstrip('.git')}/archive/{rev}.tar.gz"
         sha256 = subprocess.check_output(
-            [prefetch_url, "--unpack", "--type", "sha256", archive_url], text=True
+            [prefetch_url, "--unpack", "--type", "sha256", archive_url, "--hash-type", "sha256"], text=True
         ).strip()
+        # Convert raw sha256 to SRI format "sha256-BASE32"
+        # This requires base32 encoding the hash, but nix-prefetch-url with --hash-type already does that
         return rev, sha256
-
 
 def replace_unique(text: str, pattern: str, repl: str) -> str:
     new, count = re.subn(pattern, repl, text, count=1, flags=re.MULTILINE)
