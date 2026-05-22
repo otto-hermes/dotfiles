@@ -121,8 +121,8 @@ def update_hermes_workspace() -> str:
     ver_prefix = ver_match.group(1) if ver_match else "2.4.0"
     new_version = f"{ver_prefix}-{rev[:8]}"
 
-    text = replace_unique(text, r'version = "[^"]+";\n\n\s*src = pkgs\.fetchFromGitHub',
-                          f'version = "{new_version}";\n\n    src = pkgs.fetchFromGitHub')
+    text = replace_unique(text, r'version = "[^"]+";\n\s+src = pkgs\.fetchFromGitHub',
+                          f'version = "{new_version}";\n    src = pkgs.fetchFromGitHub')
     text = replace_unique(text, r'rev = "[^"]+";', f'rev = "{rev}";')
     text = replace_unique(text, r'hash = "[^"]+";', f'hash = "{sri_hash}";')
 
