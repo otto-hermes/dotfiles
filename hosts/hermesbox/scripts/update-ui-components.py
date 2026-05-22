@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Update declarative Nix packages (herm-tui and hermes-workspace) from upstream metadata.
 
-This script fetches latest versions and hashes for both the Herm TUI and 
+This script fetches latest versions and hashes for both the Herm TUI and
 the Hermes Workspace dashboard, then patches the Nix configuration.
+
+Can run as no_agent cron or agent-triggered. When no_agent, the cronsync
+service provides a minimal PATH so all binary calls use full paths.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -18,35 +22,59 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 AGENT_NIX = REPO_ROOT / "hosts" / "hermesbox" / "hermes-agent.nix"
 HERM_TUI_NIX = REPO_ROOT / "packages" / "herm-tui.nix"
 
+# Known tool locations — the cronsync service's PATH is too minimal for npm,
+# git, and nix-prefetch-url.
+_NIX_SW = "/run/current-system/sw/bin"
+_NIX_PROFILE = "/nix/var/nix/profiles/default/bin"
+_USER_PROFILE = "/etc/profiles/per-user/hermes/bin"
+
+# Ensure PATH covers everything we need, preserving any existing value.
+os.environ.setdefault(
+    "PATH",
+    f"{_USER_PROFILE}:{_NIX_SW}:{_NIX_PROFILE}",
+)
+
+
 def npm_view(spec: str) -> dict:
-    print(f"Checking npm: {spec}")
-    out = subprocess.check_output(["npm", "view", spec, "--json"], text=True)
+    print(f"  Checking npm: {spec}")
+    out = subprocess.check_output(
+        [f"{_USER_PROFILE}/npm", "view", spec, "--json"], text=True
+    )
     return json.loads(out)
 
+
 def get_git_rev_hash(repo_url: str, branch: str = "main") -> tuple[str, str]:
-    print(f"Checking git: {repo_url} ({branch})")
-    # Get latest revision
-    rev = subprocess.check_output(["git", "ls-remote", repo_url, branch], text=True).split()[0]
-    # Fetch hash using nix-prefetch-url --unpack (standard way for fetchFromGitHub style)
-    # However, since we need SRI (sha256-...) we'll use nix-prefetch-git or nix store prefetch-file
-    # For buildNpmPackage fetchFromGitHub, we need the SHA256 of the unpacked source.
-    cmd = ["nix-prefetch-github", "outsourc-e", "hermes-workspace", "--rev", rev]
+    print(f"  Checking git: {repo_url} ({branch})")
+    rev = subprocess.check_output(
+        [f"{_NIX_SW}/git", "ls-remote", repo_url, branch], text=True
+    ).split()[0]
+
+    # Try nix-prefetch-github from the nix profile first
+    prefetch_gh = f"{_NIX_PROFILE}/nix-prefetch-github"
     try:
-        out = json.loads(subprocess.check_output(cmd, text=True))
+        out = json.loads(
+            subprocess.check_output(
+                [prefetch_gh, "outsourc-e", "hermes-workspace", "--rev", rev],
+                text=True,
+            )
+        )
         return rev, out["hash"]
     except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
-        # Fallback to a slower but reliable method if nix-prefetch-github is missing
-        print("nix-prefetch-github failed or missing, using nix-prefetch-url...")
+        print("  nix-prefetch-github failed, falling back to nix-prefetch-url...")
+        prefetch_url = f"{_NIX_PROFILE}/nix-prefetch-url"
         archive_url = f"{repo_url.rstrip('.git')}/archive/{rev}.tar.gz"
-        sha256 = subprocess.check_output(["nix-prefetch-url", "--unpack", "--type", "sha256", archive_url], text=True).strip()
-        # Convert to SRI if possible, or just return sha256 (Nix accepts both)
+        sha256 = subprocess.check_output(
+            [prefetch_url, "--unpack", "--type", "sha256", archive_url], text=True
+        ).strip()
         return rev, sha256
+
 
 def replace_unique(text: str, pattern: str, repl: str) -> str:
     new, count = re.subn(pattern, repl, text, count=1, flags=re.MULTILINE)
     if count != 1:
         raise RuntimeError(f"expected exactly one match for {pattern!r}, got {count}")
     return new
+
 
 def update_herm_tui(version_spec: str) -> str:
     herm = npm_view(f"herm-tui@{version_spec}")
@@ -56,7 +84,7 @@ def update_herm_tui(version_spec: str) -> str:
     optional = herm.get("optionalDependencies", {})
     opentui_version = optional.get("@opentui/core-linux-arm64")
     if not opentui_version:
-         return f"Error: herm-tui@{version} has no @opentui/core-linux-arm64"
+        return f"Error: herm-tui@{version} has no @opentui/core-linux-arm64"
 
     opentui = npm_view(f"@opentui/core-linux-arm64@{opentui_version}")
     opentui_hash = opentui["dist"]["integrity"]
@@ -77,29 +105,25 @@ def update_herm_tui(version_spec: str) -> str:
     HERM_TUI_NIX.write_text(text)
     return f"Updated herm-tui to {version} (@opentui {opentui_version})"
 
+
 def update_hermes_workspace() -> str:
     repo_url = "https://github.com/outsourc-e/hermes-workspace.git"
     rev, sri_hash = get_git_rev_hash(repo_url)
-    
-    # workspace in hermes-agent.nix is currently pinned as:
-    # version = "2.3.0-e1470084";
-    # rev = "e1470084d29eeeba1921752f36d1228f3afc52f1";
-    # hash = "sha256-hfWetAUBmyXeB3UIPMLqul5KolXlv5dIUl4TonSWSiA=";
-    
+
     text = AGENT_NIX.read_text()
-    
-    # We'll update the version string (composed of version-prefix + short rev)
-    # Finding current version to get the prefix
+
     ver_match = re.search(r'version = "([^"-]+)-[^"]+";', text)
     ver_prefix = ver_match.group(1) if ver_match else "2.4.0"
     new_version = f"{ver_prefix}-{rev[:8]}"
-    
-    text = replace_unique(text, r'version = "[^"]+";\n\n\s*src = pkgs\.fetchFromGitHub', f'version = "{new_version}";\n\n    src = pkgs.fetchFromGitHub')
+
+    text = replace_unique(text, r'version = "[^"]+";\n\n\s*src = pkgs\.fetchFromGitHub',
+                          f'version = "{new_version}";\n\n    src = pkgs.fetchFromGitHub')
     text = replace_unique(text, r'rev = "[^"]+";', f'rev = "{rev}";')
     text = replace_unique(text, r'hash = "[^"]+";', f'hash = "{sri_hash}";')
-    
+
     AGENT_NIX.write_text(text)
     return f"Updated hermes-workspace to {new_version} (rev {rev[:8]})"
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Update Herm TUI and Workspace Dashboard pins.")
@@ -109,7 +133,7 @@ def main() -> int:
     args = parser.parse_args()
 
     results = []
-    
+
     if not args.skip_tui:
         try:
             results.append(update_herm_tui(args.tui_version))
@@ -122,14 +146,13 @@ def main() -> int:
         except Exception as e:
             results.append(f"Workspace Update Failed: {e}")
 
-    print("\n--- Update Summary ---")
+    print("--- Update Summary ---")
     for res in results:
-        print(f"- {res}")
-    
-    print("\nNext: nix build /home/hermes/dotfiles#herm-tui /home/hermes/dotfiles#hermesbox")
-    print("Then: sudo nixos-rebuild switch --flake /home/hermes/dotfiles#hermesbox")
-    
+        print(f"  - {res}")
+
+    # The next step is always the rebuild — the cron schedule handles ordering.
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

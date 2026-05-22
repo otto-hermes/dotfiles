@@ -3,12 +3,17 @@
 
 This rewrites packages/herm-tui.nix to the requested npm dist-tag/version and
 keeps hashes in SRI form, so Nix can fetch the exact tarballs reproducibly.
+
+This script can be run by the agent or as a no_agent cron job. When run as a
+no_agent cron job it inherits the cronsync service's minimal PATH, so all
+binary calls use full paths.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -17,9 +22,20 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PACKAGE_NIX = REPO_ROOT / "packages" / "herm-tui.nix"
 
+# When run as no_agent cron the PATH is minimal. Ensure known tool locations.
+_NIX_SW = "/run/current-system/sw/bin"
+_NIX_PROFILE = "/nix/var/nix/profiles/default/bin"
+_USER_PROFILE = "/etc/profiles/per-user/hermes/bin"
+os.environ.setdefault(
+    "PATH",
+    f"{_USER_PROFILE}:{_NIX_SW}:{_NIX_PROFILE}",
+)
+
 
 def npm_view(spec: str) -> dict:
-    out = subprocess.check_output(["npm", "view", spec, "--json"], text=True)
+    out = subprocess.check_output(
+        [f"{_USER_PROFILE}/npm", "view", spec, "--json"], text=True
+    )
     return json.loads(out)
 
 
@@ -69,7 +85,6 @@ def main() -> int:
 
     print(f"Updated herm-tui to {version}")
     print(f"@opentui/core-linux-arm64 {opentui_version}")
-    print("Next: nix build .#herm-tui, then sudo nixos-rebuild switch --flake .#hermesbox")
     return 0
 
 

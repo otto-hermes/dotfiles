@@ -1,6 +1,15 @@
 {
   "jobs": [
     {
+      "id": "282b4d9e7c11",
+      "name": "daily-update-packages",
+      "schedule": "30 4 * * *",
+      "no_agent": true,
+      "script": "update-ui-components.py",
+      "deliver": "telegram",
+      "prompt": "No-agent daily package update: run update-ui-components.py to refresh herm-tui and hermes-workspace Nix pins from upstream, then deliver the summary. This runs 30m before the daily rebuild so fresh packages are available."
+    },
+    {
       "id": "cbe89b5d00b5",
       "name": "daily-dotfiles-nixos-rebuild",
       "schedule": "0 5 * * *",
