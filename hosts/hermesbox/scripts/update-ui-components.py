@@ -18,9 +18,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+# The Nix dotfiles repo lives at a fixed path. Cron runs this script from
+# ~/.hermes/scripts/ where __file__-relative resolution breaks, so hardcode.
+REPO_ROOT = Path("/home/hermes/dotfiles")
 AGENT_NIX = REPO_ROOT / "hosts" / "hermesbox" / "hermes-agent.nix"
 HERM_TUI_NIX = REPO_ROOT / "packages" / "herm-tui.nix"
+
+# The dotfiles root is also where we run git commands for pre-rebuild commits.
+DOTFILES_GIT_DIR = REPO_ROOT
 
 # Known tool locations — the cronsync service's PATH is too minimal for npm,
 # git, and nix-prefetch-url.

@@ -19,7 +19,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+# Cron runs this from ~/.hermes/scripts/ where __file__-relative resolution
+# breaks. The Nix dotfiles repo is at a fixed path.
+REPO_ROOT = Path("/home/hermes/dotfiles")
 PACKAGE_NIX = REPO_ROOT / "packages" / "herm-tui.nix"
 
 # When run as no_agent cron the PATH is minimal. Ensure known tool locations.
