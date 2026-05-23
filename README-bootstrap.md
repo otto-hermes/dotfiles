@@ -238,19 +238,46 @@ If the scripts are missing, the brain restore is incomplete or the script genera
 ## 9. Restore or re-auth sensitive runtime state deliberately
 
 Default recommendation: re-auth rather than copying opaque token/cookie state.
+auth.json is intentionally not GitHub-backed. Do not copy it from the old host.
 
-Re-auth/check list:
+Re-auth/check list (run as hermes user):
 
 ```bash
+# 1. Check current provider status
 sudo -u hermes HOME=/home/hermes hermes status --all
-sudo -u hermes HOME=/home/hermes hermes auth list || true
-sudo -u hermes HOME=/home/hermes himalaya account list || true
-tailscale status || true
+sudo -u hermes HOME=/home/hermes hermes auth list
+
+# 2. Nous OAuth (interactive — opens a browser device-code URL)
+sudo -u hermes HOME=/home/hermes hermes login --provider nous
+#   Follow the printed URL, complete the device code flow in a browser.
+
+# 3. OpenAI Codex OAuth (interactive — same device-code flow)
+sudo -u hermes HOME=/home/hermes hermes login --provider openai-codex
+
+# 4. Verify credential pools populated
+sudo -u hermes HOME=/home/hermes hermes auth list
+#   Expected pools: nous (oauth), openai-codex (oauth), openrouter (api_key,
+#   auto-sourced from env:OPENROUTER_API_KEY in .env), copilot (api_key,
+#   auto-sourced from env:GITHUB_TOKEN in .env)
+
+# 5. Email
+sudo -u hermes HOME=/home/hermes himalaya account list
+
+# 6. Tailscale
+tailscale status
 ```
+
+Providers that restore automatically from sops-decrypted `.env` (no manual step):
+- **OpenRouter** — `OPENROUTER_API_KEY` is in sops `/run/secrets/hermes.env`
+- **GitHub Copilot** — `GITHUB_TOKEN` is in sops `/run/secrets/hermes.env`
+
+Providers that need interactive OAuth on every fresh machine:
+- **Nous** — `hermes login --provider nous` (device code, browser required)
+- **OpenAI Codex** — `hermes login --provider openai-codex` (device code, browser required)
 
 Sensitive state that may need explicit handling:
 
-- `auth.json`: contains OAuth/credential-pool state. Prefer `hermes auth add/login` unless preserving exact provider pools is required.
+- `auth.json`: contains OAuth tokens with expiry (nous access ~15min, auto-refreshes)
 - Messaging platform pairing/home-channel state: verify Telegram/Discord/etc. after gateway starts.
 - Sessions: do not restore wholesale unless Berker explicitly wants transcript history on the new box. Session recall can be summarized into wiki instead.
 - Browser/cookies: re-login if browser automation needs it.
