@@ -95,7 +95,7 @@ let
       owner = "outsourc-e";
       repo = "hermes-workspace";
       rev = "4f75b5835cc2f275e36d8adc28deb558844bceb5";
-      hash = "sha256-Cg/X0JM3hvbzx0tZgzpObrEzLo+hOW8bEwuXvnTgYEQ=";
+      hash = "0i30w1sbx5qb2cdnyfd1iwp37cbf9qx86nabqzrzd1ipjg8df3qa";
     };
 
     postPatch = ''
@@ -296,7 +296,7 @@ in
     addToSystemPackages = true;
     stateDir = "/home/hermes";
     workingDirectory = "/home/hermes/workspace";
-    extraDependencyGroups = [ "messaging" ];
+    extraDependencyGroups = [ "messaging" "fal" ];
 
     environmentFiles = [
       "/home/hermes/.keys/hermes.env"
@@ -356,10 +356,6 @@ in
           "spotify"
           "yuanbao"
           "computer_use"
-          "file_io"
-          "shell"
-          "execute_command"
-          "patch"
         ];
         platformToolsets = defaultToolsets ++ [ "no_mcp" ];
       in {
@@ -432,6 +428,21 @@ in
       security.tirith_enabled = false;
       unauthorized_dm_behavior = "pair";
 
+      tts = {
+        # Use edge-tts as an external CLI instead of Hermes' built-in Python
+        # provider. The built-in provider imports edge_tts into Hermes' sealed
+        # Python 3.12 venv; edge-tts depends on aiohttp, which collides with
+        # Hermes core deps and is intentionally rejected by the Nix wrapper.
+        provider = "edge-cli";
+        providers.edge-cli = {
+          type = "command";
+          command = "edge-tts --file {input_path} --voice {voice} --write-media {output_path}";
+          output_format = "mp3";
+          voice = "en-US-EmmaMultilingualNeural";
+          voice_compatible = true;
+        };
+      };
+
       telegram = {
       };
       whatsapp = {
@@ -439,6 +450,8 @@ in
       };
       platforms.whatsapp.extra.bridge_script = "/home/hermes/.hermes/platforms/whatsapp/bridge/bridge.js";
     };
+
+    extraPythonPackages = [ ];
 
     extraPackages = with pkgs; [
       curl
@@ -452,6 +465,7 @@ in
       jq
       nodejs_22
       chromium
+      python312Packages.edge-tts
       ripgrep
       tree
       wget

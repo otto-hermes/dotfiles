@@ -24,6 +24,14 @@ from pathlib import Path
 REPO_ROOT = Path("/home/hermes/dotfiles")
 PACKAGE_NIX = REPO_ROOT / "packages" / "herm-tui.nix"
 
+# 1.7.1 starts its control HTTP server but never mounts the React app / Python
+# gateway on this NixOS package path, leaving `herm` as a blank screen with
+# `/status` returning `bridge not ready`. Do not let the automatic updater
+# advance to it again unless this is intentionally removed after upstream fix.
+KNOWN_BAD_VERSIONS = {
+    "1.7.1": "blank startup; no tui_gateway.entry child; control says bridge not ready",
+}
+
 # When run as no_agent cron the PATH is minimal. Ensure known tool locations.
 _NIX_SW = "/run/current-system/sw/bin"
 _NIX_PROFILE = "/nix/var/nix/profiles/default/bin"
@@ -60,6 +68,11 @@ def main() -> int:
 
     herm = npm_view(f"herm-tui@{args.version}")
     version = herm["version"]
+    if version in KNOWN_BAD_VERSIONS:
+        raise RuntimeError(
+            f"refusing to update herm-tui to known-bad {version}: "
+            f"{KNOWN_BAD_VERSIONS[version]}"
+        )
     herm_hash = herm["dist"]["integrity"]
 
     optional = herm.get("optionalDependencies", {})

@@ -138,8 +138,9 @@ in
     ripgrep
     tmux
     tree
-    yazi
     wget
+    yazi
+    yt-dlp
   ];
 
   services.logrotate.checkConfig = false;
