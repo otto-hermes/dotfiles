@@ -583,12 +583,12 @@ in
 
   system.activationScripts."hermes-scripts" = lib.stringAfter [ "hermes-agent-setup" ] ''
     install -d -m 0755 -o hermes -g hermes /home/hermes/.hermes/scripts
-    cp --no-preserve=mode,ownership /home/hermes/dotfiles/hosts/hermesbox/scripts/no-agent-health-check.py /home/hermes/.hermes/scripts/no-agent-health-check.py
-    cp --no-preserve=mode,ownership /home/hermes/dotfiles/hosts/hermesbox/scripts/daily-dotfiles-nixos-rebuild.py /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
-    chown hermes:hermes /home/hermes/.hermes/scripts/no-agent-health-check.py
-    chown hermes:hermes /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
-    chmod 0755 /home/hermes/.hermes/scripts/no-agent-health-check.py
-    chmod 0755 /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
+    install -m 0755 -o hermes -g hermes \
+      /home/hermes/dotfiles/hosts/hermesbox/scripts/no-agent-health-check.py \
+      /home/hermes/.hermes/scripts/no-agent-health-check.py
+    install -m 0755 -o hermes -g hermes \
+      /home/hermes/dotfiles/hosts/hermesbox/scripts/daily-dotfiles-nixos-rebuild.py \
+      /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
   '';
 
   systemd.services.hermes-daily-nixos-rebuild = {
