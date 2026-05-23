@@ -79,6 +79,13 @@ let
 
   hermesWorkspace = pkgs.buildNpmPackage rec {
     pname = "hermes-workspace";
+    # When bumping: update rev + src.hash below, update the locked
+    # package-lock.json in ./hermes-workspace/ to match the new source,
+    # and recompute npmDepsHash (set to lib.fakeHash, build once, copy
+    # the suggested hash from the error). The update-ui-components.py
+    # cron script handles rev + src.hash automatically but does NOT
+    # touch package-lock.json or npmDepsHash — you must regenerate
+    # the lockfile and hash manually after each rev bump.
     version = "2.3.0-4f75b583";
     src = pkgs.fetchFromGitHub {
       owner = "outsourc-e";
