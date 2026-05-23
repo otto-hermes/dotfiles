@@ -23,13 +23,6 @@
     path = "/run/secrets/tailscale-authkey";
   };
 
-  sops.secrets."legacy/var_lib_hermes_env" = {
-    owner = "hermes";
-    group = "hermes";
-    mode = "0400";
-    path = "/run/secrets/legacy-var-lib-hermes.env";
-  };
-
   assertions = [
     {
       assertion = lib.pathExists ./secrets.yaml;
