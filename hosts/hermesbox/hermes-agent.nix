@@ -23,14 +23,9 @@ let
     export PATH="${dailyNixosRebuildPath}:$PATH"
 
     echo "==> Updating flake inputs in $flake_dir"
-    ${pkgs.sudo}/bin/sudo -u hermes HOME=/home/hermes ${pkgs.bash}/bin/bash -c 'export PATH="${dailyNixosRebuildPath}:$PATH"; exec ${pkgs.nix}/bin/nix flake update --flake "$1"' -- "$flake_dir"
-
-    echo "==> Building NixOS configuration $target"
-    if ! ${pkgs.nixos-rebuild}/bin/nixos-rebuild build --flake "$target"; then
-      echo "==> Host-specific target failed; retrying build with $flake_dir"
-      ${pkgs.nixos-rebuild}/bin/nixos-rebuild build --flake "$flake_dir"
-      target="$flake_dir"
-    fi
+    ${pkgs.sudo}/bin/sudo -u hermes HOME=/home/hermes \
+      env PATH="${dailyNixosRebuildPath}" \
+      ${pkgs.nix}/bin/nix flake update --flake "$flake_dir"
 
     echo "==> Switching NixOS configuration $target"
     ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch --flake "$target"
@@ -293,7 +288,8 @@ in
     extraDependencyGroups = [ "messaging" "fal" ];
 
     environmentFiles = [
-      "/home/hermes/.keys/hermes.env"
+      # sops-decrypted env is the source of truth for secrets.
+      # The legacy .keys/hermes.env has been retired — same content exists here.
       config.sops.secrets."hermes/env".path
     ];
     environment = {
@@ -302,29 +298,6 @@ in
 
     settings =
       let
-        platforms = [
-          "cli"
-          "telegram"
-          "discord"
-          "slack"
-          "whatsapp"
-          "signal"
-          "bluebubbles"
-          "email"
-          "homeassistant"
-          "mattermost"
-          "matrix"
-          "dingtalk"
-          "feishu"
-          "wecom"
-          "wecom_callback"
-          "weixin"
-          "qqbot"
-          "yuanbao"
-          "webhook"
-          "api_server"
-          "cron"
-        ];
         defaultToolsets = [
           "web"
           "browser"
@@ -350,8 +323,8 @@ in
           "spotify"
           "yuanbao"
           "computer_use"
+          "no_mcp"
         ];
-        platformToolsets = defaultToolsets ++ [ "no_mcp" ];
       in {
       model = {
         provider = "nous";
@@ -364,7 +337,6 @@ in
         }
       ];
       toolsets = defaultToolsets;
-      platform_toolsets = lib.genAttrs platforms (_: platformToolsets);
       agent = {
         max_turns = 90;
         reasoning_effort = "medium";
@@ -445,8 +417,6 @@ in
       platforms.whatsapp.extra.bridge_script = "/home/hermes/.hermes/platforms/whatsapp/bridge/bridge.js";
     };
 
-    extraPythonPackages = [ ];
-
     extraPackages = with pkgs; [
       curl
       espeak-ng
@@ -468,6 +438,9 @@ in
 
   systemd.services.hermes-agent = {
     serviceConfig = {
+      # Hermes agents may run `sudo` in terminal commands (nixos-rebuild,
+      # systemctl, git-as-root). NoNewPrivileges blocks privilege escalation
+      # even from inside the service' own process tree, so we must disable it.
       NoNewPrivileges = lib.mkForce false;
       TimeoutStopSec = "240s";
       UnsetEnvironment = [ "MESSAGING_CWD" ];
@@ -604,13 +577,8 @@ in
     fi
     chown hermes:hermes /home/hermes/.keys/hermes-workspace.env
     chmod 0600 /home/hermes/.keys/hermes-workspace.env
-    if [ -e /home/hermes/.hermes/.env ]; then
-      cat >> /home/hermes/.hermes/.env <<'EOF'
-WHATSAPP_ENABLED=false
-EOF
-      chown hermes:hermes /home/hermes/.hermes/.env
-      chmod 0640 /home/hermes/.hermes/.env
-    fi
+    # .env ownership and permissions are handled by the upstream
+    # hermes-agent-setup activation script. No need to touch it here.
   '';
 
   system.activationScripts."hermes-scripts" = lib.stringAfter [ "hermes-agent-setup" ] ''
