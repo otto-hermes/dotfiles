@@ -310,6 +310,11 @@ in
       security.tirith_enabled = false;
       unauthorized_dm_behavior = "pair";
 
+      stt = {
+        enabled = true;
+        provider = "openai";
+      };
+
       tts = {
         # Use edge-tts as an external CLI instead of Hermes' built-in Python
         # provider. The built-in provider imports edge_tts into Hermes' sealed
