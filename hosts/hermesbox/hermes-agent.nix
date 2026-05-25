@@ -201,7 +201,7 @@ in
     addToSystemPackages = true;
     stateDir = "/home/hermes";
     workingDirectory = "/home/hermes/workspace";
-    extraDependencyGroups = [ "messaging" "fal" ];
+    extraDependencyGroups = [ "messaging" "fal" "firecrawl" ];
 
     environmentFiles = [
       # sops-decrypted env is the source of truth for secrets.
@@ -242,14 +242,18 @@ in
           "no_mcp"
         ];
       in {
+      web = {
+        backend = "firecrawl";
+        extract_backend = "firecrawl";
+      };
       model = {
         provider = "nous";
-        default = "deepseek/deepseek-v4-flash";
+        default = "deepseek/deepseek-v4-flash:free";
       };
       fallback_providers = [
         {
           provider = "nous";
-          model = "google/gemini-2.5-flash";
+          model = "deepseek/deepseek-v4-flash";
         }
       ];
       toolsets = defaultToolsets;
@@ -283,27 +287,67 @@ in
       auxiliary = {
         compression = {
           provider = "nous";
-          model = "google/gemini-2.5-flash";
+          model = "deepseek/deepseek-v4-flash:free";
+          fallback_chain = [
+            {
+              provider = "nous";
+              model = "deepseek/deepseek-v4-flash";
+            }
+          ];
         };
         vision = {
           provider = "nous";
-          model = "google/gemini-2.5-flash";
+          model = "google/gemma-4-31b-it:free";
+          fallback_chain = [
+            {
+              provider = "nous";
+              model = "google/gemma-4-26b-a4b-it:free";
+            }
+            {
+              provider = "nous";
+              model = "openai/gpt-5-nano";
+            }
+          ];
         };
         web_extract = {
           provider = "nous";
-          model = "google/gemini-2.5-flash";
+          model = "deepseek/deepseek-v4-flash:free";
+          fallback_chain = [
+            {
+              provider = "nous";
+              model = "deepseek/deepseek-v4-flash";
+            }
+          ];
         };
         title_generation = {
           provider = "nous";
-          model = "google/gemini-2.5-flash";
+          model = "deepseek/deepseek-v4-flash:free";
+          fallback_chain = [
+            {
+              provider = "nous";
+              model = "deepseek/deepseek-v4-flash";
+            }
+          ];
         };
         triage_specifier = {
           provider = "nous";
-          model = "google/gemini-2.5-flash";
+          model = "deepseek/deepseek-v4-flash:free";
+          fallback_chain = [
+            {
+              provider = "nous";
+              model = "deepseek/deepseek-v4-flash";
+            }
+          ];
         };
         kanban_decomposer = {
           provider = "nous";
-          model = "google/gemini-2.5-flash";
+          model = "deepseek/deepseek-v4-flash:free";
+          fallback_chain = [
+            {
+              provider = "nous";
+              model = "deepseek/deepseek-v4-flash";
+            }
+          ];
         };
       };
       approvals.mode = "off";
