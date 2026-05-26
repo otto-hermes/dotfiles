@@ -263,7 +263,7 @@ in
       };
       skills = {
         external_dirs = [ "/home/hermes/.hermes/skills" ];
-        creation_nudge_interval = 0;
+        creation_nudge_interval = 15;
         disabled = [];
       };
       terminal = {
@@ -272,7 +272,7 @@ in
         timeout = 240;
       };
       memory = {
-        nudge_interval = 50;
+        nudge_interval = 10;
         memory_enabled = true;
         user_profile_enabled = true;
         memory_char_limit = 6600;
