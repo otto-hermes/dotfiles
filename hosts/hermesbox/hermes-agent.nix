@@ -297,15 +297,11 @@ in
         };
         vision = {
           provider = "nous";
-          model = "google/gemma-4-31b-it:free";
+          model = "google/gemini-3-flash-preview";
           fallback_chain = [
             {
               provider = "nous";
-              model = "google/gemma-4-26b-a4b-it:free";
-            }
-            {
-              provider = "nous";
-              model = "openai/gpt-5-nano";
+              model = "google/gemini-2.5-flash";
             }
           ];
         };
