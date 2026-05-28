@@ -16,6 +16,8 @@ in
     ./hardware-configuration.nix
     ./sops-secrets.nix
     ./hermes-agent.nix
+    ./hermes-dashboards.nix
+    ./hermes-maintenance.nix
     ./himalaya.nix
     ./tailscale.nix
     ./nginx.nix
@@ -101,10 +103,12 @@ in
   users.users.hermes = {
     isNormalUser = true;
     description = "Hermes agent operator";
-    extraGroups = [ "wheel" ];
+    extraGroups = [ "wheel" "hermes" ];
     shell = pkgs.bashInteractive;
     openssh.authorizedKeys.keys = [ sshKey ];
   };
+
+  users.groups.hermes = { };
 
   security.sudo.wheelNeedsPassword = false;
 
