@@ -102,3 +102,10 @@ if alerts:
     print("Otto no-agent health alerts:")
     for alert in alerts:
         print(f"- {alert}")
+
+# ── System profile drift check ────────────────────────────────────────────
+DRIFT_SCRIPT = "/home/hermes/.hermes/skills/system/otto-system-profile/scripts/drift-check.py"
+if Path(DRIFT_SCRIPT).exists():
+    rc, out, err = run([DRIFT_SCRIPT], timeout=30)
+    if rc != 0 or out:
+        print(f"- system profile drift: {out or err}")
