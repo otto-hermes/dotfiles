@@ -11,7 +11,7 @@
     addToSystemPackages = true;
     stateDir = "/home/hermes";
     workingDirectory = "/home/hermes/workspace";
-    extraDependencyGroups = [ "messaging" "fal" "firecrawl" ];
+    extraDependencyGroups = [ "messaging" "fal" ];
 
     environmentFiles = [
       # sops-decrypted env is the source of truth for secrets.
@@ -19,6 +19,7 @@
       config.sops.secrets."hermes/env".path
     ];
     environment = {
+      AGENT_BROWSER_EXECUTABLE_PATH = "/etc/profiles/per-user/hermes/bin/chromium-browser";
       WHATSAPP_ENABLED = "false";
     };
 
@@ -53,14 +54,22 @@
         ];
       in {
       web = {
-        backend = "firecrawl";
-        extract_backend = "firecrawl";
+        backend = "jina";
+        extract_backend = "jina";
+        search_backend = "jina";
+      };
+      browser = {
+        cloud_provider = "browser-use";
       };
       model = {
         provider = "nous";
         default = "moonshotai/kimi-k2.6:free";
       };
       fallback_providers = [
+        {
+          provider = "nous";
+          model = "deepseek/deepseek-v4-flash:free";
+        }
         {
           provider = "nous";
           model = "deepseek/deepseek-v4-flash";
@@ -214,6 +223,7 @@
       # systemctl, git-as-root). NoNewPrivileges blocks privilege escalation
       # even from inside the service' own process tree, so we must disable it.
       NoNewPrivileges = lib.mkForce false;
+      ProtectSystem = lib.mkForce "relaxed";
       TimeoutStopSec = "240s";
       UnsetEnvironment = [ "MESSAGING_CWD" ];
       ReadWritePaths = lib.mkAfter [
@@ -223,6 +233,7 @@
     };
 
     environment = {
+      AGENT_BROWSER_EXECUTABLE_PATH = "/etc/profiles/per-user/hermes/bin/chromium-browser";
       HYPERFRAMES_BROWSER_PATH = "${pkgs.chromium}/bin/chromium";
       PRODUCER_HEADLESS_SHELL_PATH = "${pkgs.chromium}/bin/chromium";
       PRODUCER_FORCE_SCREENSHOT = "true";
