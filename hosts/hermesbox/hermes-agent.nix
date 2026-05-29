@@ -17,6 +17,8 @@
       # sops-decrypted env is the source of truth for secrets.
       # The legacy .keys/hermes.env has been retired — same content exists here.
       config.sops.secrets."hermes/env".path
+      # Additional env (gitignored, not in sops): API_SERVER_KEY, etc.
+      "/home/hermes/.hermes/.env.local"
     ];
     environment = {
       AGENT_BROWSER_EXECUTABLE_PATH = "/etc/profiles/per-user/hermes/bin/chromium-browser";
@@ -62,12 +64,15 @@
         cloud_provider = "browser-use";
       };
       model = {
-        provider = "nous";
+        # OpenRouter-only free variants (`:free`) must use the OpenRouter
+        # provider. Nous accepts OpenRouter-style vendor/model slugs, but its
+        # Portal catalog does not expose every OpenRouter `:free` route.
+        provider = "openrouter";
         default = "moonshotai/kimi-k2.6:free";
       };
       fallback_providers = [
         {
-          provider = "nous";
+          provider = "openrouter";
           model = "deepseek/deepseek-v4-flash:free";
         }
         {
@@ -106,11 +111,11 @@
       auxiliary = {
         compression = {
           provider = "nous";
-          model = "deepseek/deepseek-v4-flash:free";
+          model = "deepseek/deepseek-v4-flash";
           fallback_chain = [
             {
-              provider = "nous";
-              model = "deepseek/deepseek-v4-flash";
+              provider = "openrouter";
+              model = "deepseek/deepseek-v4-flash:free";
             }
           ];
         };
@@ -126,41 +131,41 @@
         };
         web_extract = {
           provider = "nous";
-          model = "deepseek/deepseek-v4-flash:free";
+          model = "deepseek/deepseek-v4-flash";
           fallback_chain = [
             {
-              provider = "nous";
-              model = "deepseek/deepseek-v4-flash";
+              provider = "openrouter";
+              model = "deepseek/deepseek-v4-flash:free";
             }
           ];
         };
         title_generation = {
           provider = "nous";
-          model = "deepseek/deepseek-v4-flash:free";
+          model = "deepseek/deepseek-v4-flash";
           fallback_chain = [
             {
-              provider = "nous";
-              model = "deepseek/deepseek-v4-flash";
+              provider = "openrouter";
+              model = "deepseek/deepseek-v4-flash:free";
             }
           ];
         };
         triage_specifier = {
           provider = "nous";
-          model = "deepseek/deepseek-v4-flash:free";
+          model = "deepseek/deepseek-v4-flash";
           fallback_chain = [
             {
-              provider = "nous";
-              model = "deepseek/deepseek-v4-flash";
+              provider = "openrouter";
+              model = "deepseek/deepseek-v4-flash:free";
             }
           ];
         };
         kanban_decomposer = {
           provider = "nous";
-          model = "deepseek/deepseek-v4-flash:free";
+          model = "deepseek/deepseek-v4-flash";
           fallback_chain = [
             {
-              provider = "nous";
-              model = "deepseek/deepseek-v4-flash";
+              provider = "openrouter";
+              model = "deepseek/deepseek-v4-flash:free";
             }
           ];
         };
@@ -223,7 +228,7 @@
       # systemctl, git-as-root). NoNewPrivileges blocks privilege escalation
       # even from inside the service' own process tree, so we must disable it.
       NoNewPrivileges = lib.mkForce false;
-      ProtectSystem = lib.mkForce "relaxed";
+      ProtectSystem = lib.mkForce false;
       TimeoutStopSec = "240s";
       UnsetEnvironment = [ "MESSAGING_CWD" ];
       ReadWritePaths = lib.mkAfter [
@@ -242,7 +247,6 @@
       API_SERVER_ENABLED = lib.mkForce "true";
       API_SERVER_HOST = lib.mkForce "127.0.0.1";
       API_SERVER_PORT = lib.mkForce "8642";
-      API_SERVER_KEY = lib.mkForce "";
     };
   };
 }

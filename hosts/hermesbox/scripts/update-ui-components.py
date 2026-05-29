@@ -22,6 +22,7 @@ from pathlib import Path
 # ~/.hermes/scripts/ where __file__-relative resolution breaks, so hardcode.
 REPO_ROOT = Path("/home/hermes/dotfiles")
 AGENT_NIX = REPO_ROOT / "hosts" / "hermesbox" / "hermes-agent.nix"
+DASHBOARD_NIX = REPO_ROOT / "hosts" / "hermesbox" / "hermes-dashboards.nix"
 HERM_TUI_NIX = REPO_ROOT / "packages" / "herm-tui.nix"
 
 # The dotfiles root is also where we run git commands for pre-rebuild commits.
@@ -68,12 +69,16 @@ def get_git_rev_hash(repo_url: str, branch: str = "main") -> tuple[str, str]:
         print("  nix-prefetch-github failed, falling back to nix-prefetch-url...")
         prefetch_url = f"{_NIX_PROFILE}/nix-prefetch-url"
         archive_url = f"{repo_url.rstrip('.git')}/archive/{rev}.tar.gz"
-        sha256 = subprocess.check_output(
-            [prefetch_url, "--unpack", "--type", "sha256", archive_url, "--hash-type", "sha256"], text=True
+        base32_hash = subprocess.check_output(
+            [prefetch_url, "--unpack", "--type", "sha256", archive_url], text=True
         ).strip()
-        # Convert raw sha256 to SRI format "sha256-BASE32"
-        # This requires base32 encoding the hash, but nix-prefetch-url with --hash-type already does that
-        return rev, sha256
+        # nix-prefetch-url returns a nix-base32 hash; our Nix config uses SRI format.
+        nix_convert = f"{_NIX_PROFILE}/nix"
+        sri_hash = subprocess.check_output(
+            [nix_convert, "hash", "convert", "--hash-algo", "sha256", "--from", "nix32", "--to", "sri", base32_hash],
+            text=True,
+        ).strip()
+        return rev, sri_hash
 
 def replace_unique(text: str, pattern: str, repl: str) -> str:
     new, count = re.subn(pattern, repl, text, count=1, flags=re.MULTILINE)
@@ -116,7 +121,7 @@ def update_hermes_workspace() -> str:
     repo_url = "https://github.com/outsourc-e/hermes-workspace.git"
     rev, sri_hash = get_git_rev_hash(repo_url)
 
-    text = AGENT_NIX.read_text()
+    text = DASHBOARD_NIX.read_text()
 
     ver_match = re.search(r'version = "([^"-]+)-[^"]+";', text)
     ver_prefix = ver_match.group(1) if ver_match else "2.4.0"
@@ -127,7 +132,7 @@ def update_hermes_workspace() -> str:
     text = replace_unique(text, r'rev = "[^"]+";', f'rev = "{rev}";')
     text = replace_unique(text, r'hash = "[^"]+";', f'hash = "{sri_hash}";')
 
-    AGENT_NIX.write_text(text)
+    DASHBOARD_NIX.write_text(text)
     return f"Updated hermes-workspace to {new_version} (rev {rev[:8]})"
 
 
