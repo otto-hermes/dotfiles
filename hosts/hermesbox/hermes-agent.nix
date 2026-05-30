@@ -60,6 +60,15 @@
         extract_backend = "jina";
         search_backend = "jina";
       };
+      tools.tool_search = {
+        # Progressive disclosure for MCP/plugin tools. Core Hermes tools stay
+        # directly visible; large deferrable tool surfaces are replaced with
+        # tool_search/tool_describe/tool_call once they exceed this threshold.
+        enabled = "auto";
+        threshold_pct = 10;
+        search_default_limit = 5;
+        max_search_limit = 20;
+      };
       browser = {
         cloud_provider = "browser-use";
       };
