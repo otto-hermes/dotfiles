@@ -11,7 +11,7 @@
     addToSystemPackages = true;
     stateDir = "/home/hermes";
     workingDirectory = "/home/hermes/workspace";
-    extraDependencyGroups = [ "messaging" "fal" ];
+    extraDependencyGroups = [ "messaging" "fal" "firecrawl" ];
 
     environmentFiles = [
       # sops-decrypted env is the source of truth for secrets.
@@ -23,6 +23,12 @@
     environment = {
       AGENT_BROWSER_EXECUTABLE_PATH = "/etc/profiles/per-user/hermes/bin/chromium-browser";
       WHATSAPP_ENABLED = "false";
+    };
+
+    mcpServers.nixos = {
+      command = "${pkgs.mcp-nixos}/bin/mcp-nixos";
+      timeout = 120;
+      connect_timeout = 60;
     };
 
     settings =
@@ -56,9 +62,9 @@
         ];
       in {
       web = {
-        backend = "jina";
-        extract_backend = "jina";
-        search_backend = "jina";
+        backend = "firecrawl";
+        extract_backend = "firecrawl";
+        search_backend = "firecrawl";
       };
       tools.tool_search = {
         # Progressive disclosure for MCP/plugin tools. Core Hermes tools stay
@@ -73,16 +79,33 @@
         cloud_provider = "browser-use";
       };
       model = {
-        # OpenRouter-only free variants (`:free`) must use the OpenRouter
-        # provider. Nous accepts OpenRouter-style vendor/model slugs, but its
-        # Portal catalog does not expose every OpenRouter `:free` route.
-        provider = "openrouter";
-        default = "moonshotai/kimi-k2.6:free";
+        # Primary: OWL Alpha routed through Nous inference gateway.
+        provider = "nous";
+        default = "openrouter/owl-alpha";
       };
+      # Fallback chain: rotate across OpenRouter :free models first (each has
+      # its own 1000 req/day pool at the $10+ credit tier), then fast paid
+      # Codex, then current Nous primary, then cheap DeepSeek paid as last resort.
       fallback_providers = [
         {
           provider = "openrouter";
+          model = "moonshotai/kimi-k2.6:free";
+        }
+        {
+          provider = "openrouter";
+          model = "minimax/minimax-m2.5:free";
+        }
+        {
+          provider = "openrouter";
           model = "deepseek/deepseek-v4-flash:free";
+        }
+        {
+          provider = "openai-codex";
+          model = "gpt-5.5";
+        }
+        {
+          provider = "nous";
+          model = "openrouter/owl-alpha";
         }
         {
           provider = "nous";
@@ -122,10 +145,9 @@
           provider = "nous";
           model = "deepseek/deepseek-v4-flash";
           fallback_chain = [
-            {
-              provider = "openrouter";
-              model = "deepseek/deepseek-v4-flash:free";
-            }
+            { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
+            { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
+            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
           ];
         };
         vision = {
@@ -142,40 +164,36 @@
           provider = "nous";
           model = "deepseek/deepseek-v4-flash";
           fallback_chain = [
-            {
-              provider = "openrouter";
-              model = "deepseek/deepseek-v4-flash:free";
-            }
+            { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
+            { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
+            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
           ];
         };
         title_generation = {
           provider = "nous";
           model = "deepseek/deepseek-v4-flash";
           fallback_chain = [
-            {
-              provider = "openrouter";
-              model = "deepseek/deepseek-v4-flash:free";
-            }
+            { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
+            { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
+            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
           ];
         };
         triage_specifier = {
           provider = "nous";
           model = "deepseek/deepseek-v4-flash";
           fallback_chain = [
-            {
-              provider = "openrouter";
-              model = "deepseek/deepseek-v4-flash:free";
-            }
+            { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
+            { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
+            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
           ];
         };
         kanban_decomposer = {
           provider = "nous";
           model = "deepseek/deepseek-v4-flash";
           fallback_chain = [
-            {
-              provider = "openrouter";
-              model = "deepseek/deepseek-v4-flash:free";
-            }
+            { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
+            { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
+            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
           ];
         };
       };
@@ -224,6 +242,7 @@
       jq
       nodejs_22
       chromium
+      mcp-nixos
       python312Packages.edge-tts
       ripgrep
       tree
