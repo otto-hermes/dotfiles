@@ -79,18 +79,13 @@
         cloud_provider = "browser-use";
       };
       model = {
-        # Primary: OWL Alpha routed through Nous inference gateway.
-        provider = "nous";
-        default = "openrouter/owl-alpha";
+        # Primary: Kimi K2.6 via OpenRouter free tier (1000 req/day pool).
+        provider = "openrouter";
+        default = "moonshotai/kimi-k2.6:free";
       };
-      # Fallback chain: rotate across OpenRouter :free models first (each has
-      # its own 1000 req/day pool at the $10+ credit tier), then fast paid
-      # Codex, then current Nous primary, then cheap DeepSeek paid as last resort.
+      # Fallback chain: remaining free models first, then fast paid Codex,
+      # then OWL Alpha via Nous, then cheap DeepSeek paid as last resort.
       fallback_providers = [
-        {
-          provider = "openrouter";
-          model = "moonshotai/kimi-k2.6:free";
-        }
         {
           provider = "openrouter";
           model = "minimax/minimax-m2.5:free";
@@ -203,6 +198,13 @@
       approvals.mode = "off";
       security.tirith_enabled = false;
       unauthorized_dm_behavior = "pair";
+
+      display = {
+        show_reasoning = false;
+        show_cost = true;
+        sections.thinking = "collapsed";
+        bell_on_complete = true;
+      };
 
       stt = {
         enabled = true;
