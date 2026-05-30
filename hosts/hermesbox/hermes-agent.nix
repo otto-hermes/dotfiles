@@ -79,33 +79,28 @@
         cloud_provider = "browser-use";
       };
       model = {
-        # Primary: Kimi K2.6 via OpenRouter free tier (1000 req/day pool).
+        # Primary: MiniMax M2.5 via OpenRouter free tier (1000 req/day pool).
         provider = "openrouter";
-        default = "moonshotai/kimi-k2.6:free";
+        default = "minimax/minimax-m2.5:free";
       };
-      # Fallback chain: leave OpenRouter immediately when the primary
-      # OpenRouter route is rate-limited or its credential pool is poisoned.
-      # Same-provider free fallbacks come later for model-specific failures.
+      # Fallback chain: free-first rotation with Kimi removed. Paid providers
+      # remain later safety nets instead of the first fallback.
       fallback_providers = [
+        {
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
+        }
         {
           provider = "openai-codex";
           model = "gpt-5.5";
         }
         {
           provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
-        }
-        {
-          provider = "nous";
           model = "openrouter/owl-alpha";
         }
         {
-          provider = "openrouter";
-          model = "minimax/minimax-m2.5:free";
-        }
-        {
-          provider = "openrouter";
-          model = "deepseek/deepseek-v4-flash:free";
+          provider = "nous";
+          model = "deepseek/deepseek-v4-flash";
         }
       ];
       toolsets = defaultToolsets;
@@ -138,12 +133,11 @@
       };
       auxiliary = {
         compression = {
-          provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
           fallback_chain = [
-            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
-            { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
             { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
+            { provider = "nous"; model = "deepseek/deepseek-v4-flash"; }
           ];
         };
         vision = {
@@ -157,39 +151,35 @@
           ];
         };
         web_extract = {
-          provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
           fallback_chain = [
-            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
-            { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
             { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
+            { provider = "nous"; model = "deepseek/deepseek-v4-flash"; }
           ];
         };
         title_generation = {
-          provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
           fallback_chain = [
-            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
-            { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
             { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
+            { provider = "nous"; model = "deepseek/deepseek-v4-flash"; }
           ];
         };
         triage_specifier = {
-          provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
           fallback_chain = [
-            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
-            { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
             { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
+            { provider = "nous"; model = "deepseek/deepseek-v4-flash"; }
           ];
         };
         kanban_decomposer = {
-          provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
           fallback_chain = [
-            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
-            { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
             { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
+            { provider = "nous"; model = "deepseek/deepseek-v4-flash"; }
           ];
         };
       };
