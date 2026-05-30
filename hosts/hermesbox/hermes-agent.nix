@@ -137,12 +137,12 @@
       };
       auxiliary = {
         compression = {
-          provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
           fallback_chain = [
             { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
             { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
-            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
+            { provider = "nous"; model = "deepseek/deepseek-v4-flash"; }
           ];
         };
         vision = {
@@ -156,39 +156,39 @@
           ];
         };
         web_extract = {
-          provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
           fallback_chain = [
             { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
             { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
-            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
+            { provider = "nous"; model = "deepseek/deepseek-v4-flash"; }
           ];
         };
         title_generation = {
-          provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
           fallback_chain = [
             { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
             { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
-            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
+            { provider = "nous"; model = "deepseek/deepseek-v4-flash"; }
           ];
         };
         triage_specifier = {
-          provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
           fallback_chain = [
             { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
             { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
-            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
+            { provider = "nous"; model = "deepseek/deepseek-v4-flash"; }
           ];
         };
         kanban_decomposer = {
-          provider = "nous";
-          model = "deepseek/deepseek-v4-flash";
+          provider = "openrouter";
+          model = "deepseek/deepseek-v4-flash:free";
           fallback_chain = [
             { provider = "openrouter"; model = "moonshotai/kimi-k2.6:free"; }
             { provider = "openrouter"; model = "minimax/minimax-m2.5:free"; }
-            { provider = "openrouter"; model = "deepseek/deepseek-v4-flash:free"; }
+            { provider = "nous"; model = "deepseek/deepseek-v4-flash"; }
           ];
         };
       };
