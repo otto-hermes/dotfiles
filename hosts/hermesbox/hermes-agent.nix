@@ -77,6 +77,10 @@
       };
       browser = {
         cloud_provider = "browser-use";
+        # Prefer the persistent headed Chromium service for human-in-the-loop
+        # shopping automation. Hermes browser tools resolve this HTTP CDP
+        # discovery endpoint to the concrete ws://.../devtools/browser URL.
+        cdp_url = "http://127.0.0.1:9222";
       };
       model = {
         # Primary: StepFun Step 3.7 free via Nous.
