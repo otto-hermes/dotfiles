@@ -21,7 +21,10 @@ in
     ./himalaya.nix
     ./tailscale.nix
     ./nginx.nix
+    ./modules/hermes-headed-browser.nix
   ];
+
+  services.hermes-headed-browser.enable = true;
 
   boot.tmp.cleanOnBoot = true;
 
