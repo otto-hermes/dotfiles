@@ -47,6 +47,8 @@ let
       --no-default-browser-check \
       --disable-dev-shm-usage \
       --disable-gpu \
+      --disable-notifications \
+      --deny-permission-prompts \
       --window-size=${cfg.windowSize} \
       --remote-debugging-address=127.0.0.1 \
       --remote-debugging-port=${toString cfg.cdpPort} \
