@@ -11,9 +11,15 @@ let
     fi
 
     now="$(${pkgs.coreutils}/bin/date +%s)"
+    # This workaround exists for OpenAI Codex OAuth quota windows: once the
+    # quota refreshes, Hermes may still carry a stale local "exhausted" marker
+    # until the gateway reloads auth state. Do not apply it to OpenRouter free
+    # routes; their 429s are real upstream/provider rate limits, and resetting
+    # local state just causes repeated gateway restarts without restoring quota.
     providers="$(${pkgs.jq}/bin/jq -r --argjson now "$now" '
       (.credential_pool // {})
       | to_entries[]
+      | select(.key == "openai-codex")
       | select(any(.value[]?;
           .last_status == "exhausted"
           and (

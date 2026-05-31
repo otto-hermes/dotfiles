@@ -33,6 +33,7 @@ let
     exit 1
   '';
 
+
   hermesWorkspace = pkgs.buildNpmPackage rec {
     pname = "hermes-workspace";
     # When bumping: update rev + src.hash below, update the locked
@@ -205,4 +206,5 @@ in
       ];
     };
   };
+
 }
