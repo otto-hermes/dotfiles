@@ -28,7 +28,7 @@ in
 
   boot.tmp.cleanOnBoot = true;
 
-  documentation.man.generateCaches = false;
+  documentation.man.cache.enable = false;
 
   programs.mosh.enable = true;
   programs.nix-ld.enable = true;
@@ -127,7 +127,7 @@ in
   environment.systemPackages = with pkgs; [
     btop
     chromium
-    (codex-cli-nix.packages.${pkgs.system}.codex)
+    (codex-cli-nix.packages.${pkgs.stdenv.hostPlatform.system}.codex)
     curl
     espeak-ng
     fastfetch

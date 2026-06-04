@@ -127,6 +127,7 @@ in
       User = "hermes";
       Group = "hermes";
       WorkingDirectory = "/home/hermes";
+      EnvironmentFile = "/home/hermes/.keys/hermes-desktop.env";
       ExecStart = hermesDashboardTailscale;
       Restart = "on-failure";
       RestartSec = "5s";

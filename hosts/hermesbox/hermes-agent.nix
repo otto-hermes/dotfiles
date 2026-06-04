@@ -234,6 +234,7 @@
       espeak-ng
       fd
       ffmpeg
+      gh
       git
       himalaya
       jq
@@ -270,7 +271,9 @@
       SHELL = lib.mkForce "${pkgs.bashInteractive}/bin/bash";
       WHATSAPP_ENABLED = lib.mkForce "false";
       API_SERVER_ENABLED = lib.mkForce "true";
-      API_SERVER_HOST = lib.mkForce "127.0.0.1";
+      # Expose the stable bearer-token API to trusted Tailscale clients.
+      # The NixOS firewall keeps non-tailnet interfaces closed.
+      API_SERVER_HOST = lib.mkForce "0.0.0.0";
       API_SERVER_PORT = lib.mkForce "8642";
     };
   };

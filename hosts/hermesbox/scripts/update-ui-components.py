@@ -144,25 +144,33 @@ def main() -> int:
     args = parser.parse_args()
 
     results = []
+    failed = False
 
     if not args.skip_tui:
         try:
-            results.append(update_herm_tui(args.tui_version))
+            result = update_herm_tui(args.tui_version)
+            results.append(result)
+            failed = failed or result.startswith("Error:")
         except Exception as e:
             results.append(f"TUI Update Failed: {e}")
+            failed = True
 
     if not args.skip_workspace:
         try:
-            results.append(update_hermes_workspace())
+            result = update_hermes_workspace()
+            results.append(result)
+            failed = failed or result.startswith("Error:")
         except Exception as e:
             results.append(f"Workspace Update Failed: {e}")
+            failed = True
 
     print("--- Update Summary ---")
     for res in results:
         print(f"  - {res}")
 
-    # The next step is always the rebuild — the cron schedule handles ordering.
-    return 0
+    # The next step is the rebuild cron; surface failed updates so Hermes does
+    # not report a clean package update when only one side succeeded.
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

@@ -171,6 +171,40 @@ sudo nixos-rebuild switch --flake /home/hermes/dotfiles#otto-onprem
 
 If the target is still named `hermesbox`, fix the flake/host naming before final cutover. Separate names reduce accidental VPS/on-prem confusion.
 
+### Hermes Desktop Remote Access Token
+
+Hermes Desktop remote mode connects to the Hermes dashboard backend on port `9119`, not the Workspace UI on `9130` and not the gateway API server on `8642`.
+
+The dashboard service must have a stable process-lifetime session token so desktop clients can authenticate both `/api/status` and `/api/ws`:
+
+```text
+/home/hermes/.keys/hermes-desktop.env
+HERMES_DASHBOARD_SESSION_TOKEN=<secret value>
+```
+
+Keep `/home/hermes/.keys/hermes-desktop.env` mode `600` and owned by `hermes:hermes`. The NixOS service source of truth is `/home/hermes/dotfiles/hosts/hermesbox/hermes-dashboards.nix`; `hermes-dashboard.service` loads that private file with `EnvironmentFile = "/home/hermes/.keys/hermes-desktop.env"`. Do not put the token in Git or the Nix store.
+
+On Berker's desktop/laptop, Hermes Desktop should be launched with:
+
+```text
+~/.config/hermes-desktop/remote.env
+HERMES_DESKTOP_REMOTE_URL=http://<tailscale-ip>:9119
+HERMES_DESKTOP_REMOTE_TOKEN=<same value as HERMES_DASHBOARD_SESSION_TOKEN>
+```
+
+This deliberately differs from `API_SERVER_KEY`; `API_SERVER_KEY` is for the gateway API server on `8642` and will make Hermes Desktop boot-status checks pass while `/api/ws` still fails.
+
+Verification from Berker's machine after migration:
+
+```bash
+set -a; . ~/.config/hermes-desktop/remote.env; set +a
+curl -fsS -H "X-Hermes-Session-Token: $HERMES_DESKTOP_REMOTE_TOKEN" "$HERMES_DESKTOP_REMOTE_URL/api/status"
+node -e 'const http=require("http"),crypto=require("crypto");const token=process.env.HERMES_DESKTOP_REMOTE_TOKEN;const key=crypto.randomBytes(16).toString("base64");const req=http.request({host:"<tailscale-ip>",port:9119,path:"/api/ws?token="+encodeURIComponent(token),headers:{Connection:"Upgrade",Upgrade:"websocket","Sec-WebSocket-Key":key,"Sec-WebSocket-Version":"13",Origin:"file://"}});req.on("upgrade",(res,socket)=>{console.log("upgrade",res.statusCode);socket.destroy()});req.on("response",res=>{console.log("response",res.statusCode);res.resume()});req.end();'
+```
+
+Expected WebSocket result is `upgrade 101`. A `401` means the local Desktop token is wrong, the dashboard service is not loading `/home/hermes/.keys/hermes-desktop.env`, or the dashboard was not restarted after changing the token.
+
+
 Verify activation:
 
 ```bash

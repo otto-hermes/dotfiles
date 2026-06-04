@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """No-agent trigger for the declarative daily NixOS rebuild unit.
 
-Healthy/successful runs print nothing so Hermes cron stays silent. Failures print
-concise diagnostics and exit non-zero so the scheduler marks the run failed.
+Healthy/successful queueing prints nothing so Hermes cron stays silent. The
+rebuild unit may restart hermes-agent during switch, so this wrapper must not
+wait synchronously for the unit to finish.
 """
 import subprocess
-import sys
 
 UNIT = "hermes-daily-nixos-rebuild.service"
 
@@ -29,7 +29,7 @@ def run(cmd: list[str], timeout: int | None = None) -> subprocess.CompletedProce
 
 
 def main() -> int:
-    start = run([SUDO, SYSTEMCTL, "start", UNIT], timeout=2 * 60 * 60 + 60)
+    start = run([SUDO, SYSTEMCTL, "start", "--no-block", UNIT], timeout=30)
     if start.returncode == 0:
         return 0
 

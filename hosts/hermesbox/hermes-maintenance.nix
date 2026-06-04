@@ -113,6 +113,12 @@ in
     install -m 0755 -o hermes -g hermes \
       /home/hermes/dotfiles/hosts/hermesbox/scripts/daily-dotfiles-nixos-rebuild.py \
       /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
+    install -m 0755 -o hermes -g hermes \
+      /home/hermes/dotfiles/hosts/hermesbox/scripts/update-ui-components.py \
+      /home/hermes/.hermes/scripts/update-ui-components.py
+    install -m 0755 -o hermes -g hermes \
+      /home/hermes/dotfiles/hosts/hermesbox/scripts/update-herm-tui.py \
+      /home/hermes/.hermes/scripts/update-herm-tui.py
   '';
 
   systemd.services.hermes-auth-reset = {

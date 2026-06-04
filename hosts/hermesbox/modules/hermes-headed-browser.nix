@@ -25,7 +25,7 @@ let
     # to this unit, so removing its own lock/socket before startup is safe.
     rm -f /tmp/.X${toString cfg.displayNumber}-lock /tmp/.X11-unix/X${toString cfg.displayNumber}
 
-    ${pkgs.xorg.xvfb}/bin/Xvfb ${cfg.display} \
+    ${pkgs.xvfb}/bin/Xvfb ${cfg.display} \
       -screen 0 ${cfg.screen} \
       -nolisten tcp \
       -ac \
@@ -33,7 +33,7 @@ let
 
     # Wait for Xvfb to accept clients before launching the window manager/browser.
     for _ in $(seq 1 50); do
-      if ${pkgs.xorg.xdpyinfo}/bin/xdpyinfo -display ${cfg.display} >/dev/null 2>&1; then
+      if ${pkgs.xdpyinfo}/bin/xdpyinfo -display ${cfg.display} >/dev/null 2>&1; then
         break
       fi
       sleep 0.1
@@ -156,8 +156,8 @@ in
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
       chromium
-      xorg.xvfb
-      xorg.xdpyinfo
+      xvfb
+      xdpyinfo
       openbox
       x11vnc
       novnc

@@ -20,6 +20,7 @@
     # Prepare the VM to act as a Germany exit node. Admin-console approval is still required.
     useRoutingFeatures = "server";
     extraSetFlags = [
+      "--accept-dns=false"
       "--advertise-exit-node"
     ];
   };
