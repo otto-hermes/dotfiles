@@ -7,7 +7,7 @@ let
     for _ in $(${pkgs.coreutils}/bin/seq 1 60); do
       tail_ip="$(${pkgs.tailscale}/bin/tailscale ip -4 2>/dev/null | ${pkgs.coreutils}/bin/head -n1 || true)"
       if [ -n "$tail_ip" ]; then
-        exec env PYTHONPATH=/home/hermes/dotfiles/hermes-dashboard-patch''${PYTHONPATH:+:$PYTHONPATH} /run/current-system/sw/bin/hermes dashboard --host "$tail_ip" --port 9119 --no-open --tui --insecure
+        exec env PYTHONPATH=/home/hermes/dotfiles/hermes-dashboard-patch''${PYTHONPATH:+:$PYTHONPATH} /run/current-system/sw/bin/hermes dashboard --host "$tail_ip" --port 9119 --no-open --insecure
       fi
       ${pkgs.coreutils}/bin/sleep 2
     done

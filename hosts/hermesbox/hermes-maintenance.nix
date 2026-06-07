@@ -71,6 +71,46 @@ let
 
     echo "==> Switching NixOS configuration $target"
     ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch --flake "$target"
+
+    echo "==> Restarting Hermes services after switch"
+    ${pkgs.systemd}/bin/systemctl try-restart \
+      hermes-agent.service \
+      hermes-dashboard.service \
+      hermes-workspace-dashboard.service \
+      hermes-context-usage-dashboard.service
+  '';
+
+
+  hermesDailyNixosRebuildNotify = pkgs.writeShellScript "hermes-daily-nixos-rebuild-notify" ''
+    set -euo pipefail
+
+    unit="hermes-daily-nixos-rebuild.service"
+
+    set -a
+    if [ -r /home/hermes/.keys/hermes.env ]; then
+      . /home/hermes/.keys/hermes.env
+    elif [ -r /home/hermes/.hermes/.env ]; then
+      . /home/hermes/.hermes/.env
+    fi
+    set +a
+
+    if [ -z "''${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "''${TELEGRAM_HOME_CHANNEL:-}" ]; then
+      echo "Telegram maintenance alert skipped: TELEGRAM_BOT_TOKEN or TELEGRAM_HOME_CHANNEL is unset" >&2
+      exit 0
+    fi
+
+    journal="$(${pkgs.systemd}/bin/journalctl -u "$unit" -n 80 --no-pager -o short-iso 2>&1 || true)"
+    message="$(${pkgs.coreutils}/bin/printf 'Hermesbox maintenance failed: %s\n\n%s' "$unit" "$journal")"
+    message="''${message:0:3500}"
+    payload="$(${pkgs.jq}/bin/jq -n \
+      --arg chat_id "$TELEGRAM_HOME_CHANNEL" \
+      --arg text "$message" \
+      '{chat_id: $chat_id, text: $text, disable_web_page_preview: true}')"
+
+    ${pkgs.curl}/bin/curl --fail --silent --show-error --max-time 20 \
+      -H 'Content-Type: application/json' \
+      -d "$payload" \
+      "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" >/dev/null
   '';
 
   hyperframes = pkgs.writeShellScriptBin "hyperframes" ''
@@ -110,9 +150,7 @@ in
     install -m 0755 -o hermes -g hermes \
       /home/hermes/dotfiles/hosts/hermesbox/scripts/no-agent-health-check.py \
       /home/hermes/.hermes/scripts/no-agent-health-check.py
-    install -m 0755 -o hermes -g hermes \
-      /home/hermes/dotfiles/hosts/hermesbox/scripts/daily-dotfiles-nixos-rebuild.py \
-      /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
+    rm -f /home/hermes/.hermes/scripts/daily-dotfiles-nixos-rebuild.py
     install -m 0755 -o hermes -g hermes \
       /home/hermes/dotfiles/hosts/hermesbox/scripts/update-ui-components.py \
       /home/hermes/.hermes/scripts/update-ui-components.py
@@ -142,10 +180,32 @@ in
     };
   };
 
+  systemd.timers.hermes-daily-nixos-rebuild = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*-*-* 05:00:00";
+      Persistent = true;
+      RandomizedDelaySec = "10m";
+      Unit = "hermes-daily-nixos-rebuild.service";
+    };
+  };
+
+
+  systemd.services.hermes-daily-nixos-rebuild-notify = {
+    description = "Send Telegram alert for failed daily NixOS rebuild";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+      Group = "root";
+      ExecStart = hermesDailyNixosRebuildNotify;
+    };
+  };
+
   systemd.services.hermes-daily-nixos-rebuild = {
-    description = "Daily NixOS flake update, build, and switch triggered by Hermes cron";
+    description = "Daily NixOS flake update, build, and switch";
     after = [ "network-online.target" "nix-daemon.service" ];
     wants = [ "network-online.target" ];
+    unitConfig.OnFailure = "hermes-daily-nixos-rebuild-notify.service";
     path = [
       pkgs.bash
       pkgs.coreutils
