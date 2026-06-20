@@ -1,13 +1,13 @@
 { lib, stdenvNoCC, fetchurl, bun, makeWrapper, hermesAgentPackage ? null }:
 
 let
-  version = "1.8.1";
+  version = "1.9.0";
   opentuiCoreVersion = "0.2.2";
   opentuiCorePackage = "@opentui/core-linux-arm64";
 
   hermSrc = fetchurl {
     url = "https://registry.npmjs.org/herm-tui/-/herm-tui-${version}.tgz";
-    hash = "sha512-fNvLn+E9XnZklu5sBqQgdJu4aXCbjrltszPTPcOs3QZ/y1DpcMjBlMPDExNkcBdjoTWENzmb3ZIypVOUsUftSQ==";
+    hash = "sha512-oYc8e43yig/xGkNyinyqA695htynnb5pEKujHs8ABZDXx2ISLU7cCBVdclt7WgT4G+gH9ylYNvr9i4vOcQ+veQ==";
   };
 
   opentuiCoreSrc = fetchurl {
