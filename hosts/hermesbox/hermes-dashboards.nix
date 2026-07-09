@@ -43,12 +43,12 @@ let
     # cron script handles rev + src.hash automatically but does NOT
     # touch package-lock.json or npmDepsHash — you must regenerate
     # the lockfile and hash manually after each rev bump.
-    version = "2.3.0-d04e1f36";
+    version = "2.3.0-c1e6ed97";
     src = pkgs.fetchFromGitHub {
       owner = "outsourc-e";
       repo = "hermes-workspace";
-      rev = "d04e1f3601cf36dba8763dd8bde717ae6259882c";
-      hash = "sha256-pX8Zfy555hZIqt8igrSaQAJDplZBqLQ0iEP/ElRX1Fc=";
+      rev = "c1e6ed979dcb8dddf79c5b163150c6c23c4dce0c";
+      hash = "sha256-vXLypObBMvifmr0z9iUw0tJ3158Q4cACGV/PcovafH4=";
     };
 
     postPatch = ''
